@@ -1,15 +1,15 @@
-    import { useState } from 'react';
-    import { Button } from './ui/button';
-    import { Input } from './ui/input';
-    import { Label } from './ui/label';
-    import { Film } from 'lucide-react';
+import { useState } from 'react';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
+import logo from '../assets/logo.png';
 
-    type LoginProps = {
-    onLogin: (email: string, password: string) => void;
-    onNavigate: (page: 'home' | 'register') => void;
-    };
+type LoginProps = {
+onLogin: (email: string, password: string) => void;
+onNavigate: (page: 'home' | 'register') => void;
+};
 
-    export function Login({ onLogin, onNavigate }: LoginProps) {
+export function Login({ onLogin, onNavigate }: LoginProps) {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
 
@@ -23,8 +23,9 @@
         <div className="w-full max-w-md">
             <div className="text-center mb-8">
             <div className="flex items-center justify-center gap-2 mb-4">
-                <Film className="w-10 h-10 text-red-600" />
-                <span className="text-white text-3xl tracking-tight">CineMax</span>
+                <div>
+                <img src={logo} alt="Logo" />
+                </div>
             </div>
             <h1 className="text-white text-2xl mb-2">Iniciar Sesión</h1>
             <p className="text-white/60">Accede a tu cuenta para continuar</p>
@@ -47,7 +48,7 @@
                 />
                 </div>
 
-                <div>
+                <div style={{ marginTop: '20px' , marginBottom: '20px' }}>
                 <Label htmlFor="password" className="text-white">
                     Contraseña
                 </Label>
@@ -62,14 +63,16 @@
                 />
                 </div>
 
+            </div>
+            </form>
+            <div className="mt-50 text-center" style={{ marginTop: '20px' , marginBottom: '20px' }}>
                 <Button
                 type="submit"
-                className="w-full bg-red-600 hover:bg-red-700 text-white"
+                className="bg-red-600 hover:bg-red-700 text-white px-8"
                 >
                 Iniciar Sesión
                 </Button>
             </div>
-            </form>
 
             <div className="mt-6 text-center">
             <p className="text-white/60">

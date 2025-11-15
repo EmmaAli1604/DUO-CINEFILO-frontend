@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
-import { Film } from 'lucide-react';
+import logo from '../assets/logo.png';
 
 type RegisterProps = {
     onRegister: (name: string, email: string, password: string) => void;
@@ -29,8 +29,7 @@ export function Register({ onRegister, onNavigate }: RegisterProps) {
         <div className="w-full max-w-md">
             <div className="text-center mb-8">
             <div className="flex items-center justify-center gap-2 mb-4">
-                <Film className="w-10 h-10 text-red-600" />
-                <span className="text-white text-3xl tracking-tight">CineMax</span>
+                <img src={logo} alt="Logo" />
             </div>
             <h1 className="text-white text-2xl mb-2">Crear Cuenta</h1>
             <p className="text-white/60">Únete a la mejor experiencia de cine</p>
@@ -54,7 +53,7 @@ export function Register({ onRegister, onNavigate }: RegisterProps) {
                 </div>
 
                 <div>
-                <Label htmlFor="email" className="text-white">
+                <Label htmlFor="email" className="text-white" style={{ marginTop: '20px' }}>
                     Correo Electrónico
                 </Label>
                 <Input
@@ -69,7 +68,7 @@ export function Register({ onRegister, onNavigate }: RegisterProps) {
                 </div>
 
                 <div>
-                <Label htmlFor="password" className="text-white">
+                <Label htmlFor="password" className="text-white" style={{ marginTop: '20px'}}>
                     Contraseña
                 </Label>
                 <Input
@@ -84,7 +83,7 @@ export function Register({ onRegister, onNavigate }: RegisterProps) {
                 </div>
 
                 <div>
-                <Label htmlFor="confirmPassword" className="text-white">
+                <Label htmlFor="confirmPassword" className="text-white" style={{ marginTop: '20px' }}>
                     Confirmar Contraseña
                 </Label>
                 <Input
@@ -98,6 +97,10 @@ export function Register({ onRegister, onNavigate }: RegisterProps) {
                 />
                 </div>
 
+            </div>
+            </form>
+            
+            <div className="mt-50 text-center" style={{ marginTop: '20px' , marginBottom: '20px' }}>
                 <Button
                 type="submit"
                 className="w-full bg-red-600 hover:bg-red-700 text-white"
@@ -105,7 +108,6 @@ export function Register({ onRegister, onNavigate }: RegisterProps) {
                 Crear Cuenta
                 </Button>
             </div>
-            </form>
 
             <div className="mt-6 text-center">
             <p className="text-white/60">
