@@ -1,157 +1,132 @@
-import { useState } from 'react';
-import type { ComponentType } from 'react';
+import { useState, useEffect } from 'react';
 import { Home } from './components/Home';
 import { Login } from './components/Login';
 import { Register } from './components/Register';
 import { MovieDetail } from './components/MovieDetail';
-import { UserProfile } from './components/UserProfile';
-import Chatbot from './components/Chatbot';
-import { Workshops } from './components/Workshops';
-import { Festivals } from './components/Festivals';
+import Chatbot  from './components/Chatbot'; // <-- ¡IMPORTACIÓN CLAVE!
 
-const ChatbotComponent = Chatbot as ComponentType<{ onBack?: () => void }>;
-
-// Tipos compartidos
-export type User = {
-  id: string;
-  name: string;
-  email: string;
-};
-
+// Definiciones de tipos (asumiendo que estaban en App.tsx)
+export type Page = 'home' | 'login' | 'register' | 'movieDetail';
+export type User = { id: string; name: string; email: string };
 export type Movie = {
-  id: string;
-  title: string;
-  director: string;
-  description: string;
-  genre: string;
-  imageUrl: string;
-  price: number;
-  rating: number;
-  year: number;
-  duration: string;
+    id: string;
+    title: string;
+    director: string;
+    description: string;
+    genre: string;
+    imageUrl: string;
+    price: number;
+    rating: number;
+    year: number;
+    duration: string;
 };
-
 export type Cinema = {
-  id: string;
-  name: string;
-  address: string;
-  distance: string;
+    id: string;
+    name: string;
+    address: string;
+    distance: string;
 };
 
-// Define el tipo de página explícitamente
-export type AppPage =
-  | 'home'
-  | 'login'
-  | 'register'
-  | 'movie'
-  // | 'seats'
-  | 'profile'
-  | 'workshops'
-  | 'festivals'
-  | 'chatbot';
 
-export default function App() {
-  const [currentPage, setCurrentPage] = useState<AppPage>('home');
-  const [user, setUser] = useState<User | null>(null);
-  const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
-  const [selectedCinema, setSelectedCinema] = useState<Cinema | null>(null);
+function App() {
+    const [page, setPage] = useState<Page>('home');
+    const [user, setUser] = useState<User | null>(null);
+    const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
 
-  const navigateTo = (page: AppPage) => {
-    setCurrentPage(page);
-  };
+    // MOCK DATA
+    const MOCK_USER: User = { id: 'user1', name: 'Duo Cinefilo', email: 'user@example.com' };
 
-  const handleLogin = (email: string, password: string) => {
-    setUser({ id: '1', name: 'Usuario', email });
-    navigateTo('home');
-  };
+    // Funciones de navegación
+    const handleNavigate = (newPage: 'home' | 'login' | 'register') => {
+        setPage(newPage);
+        setSelectedMovie(null);
+    };
 
-  const handleRegister = (name: string, email: string, password: string) => {
-    setUser({ id: '1', name, email });
-    navigateTo('home');
-  };
+    // Funciones de autenticación
+    const handleLogin = (email: string, password: string) => {
+        // Lógica de login simple. En una app real, esto llamaría a una API.
+        if (email === MOCK_USER.email && password === '123456') {
+            setUser(MOCK_USER);
+            setPage('home');
+        } else {
+            alert('Credenciales incorrectas');
+        }
+    };
 
-  const handleLogout = () => {
-    setUser(null);
-    navigateTo('home');
-  };
+    const handleLogout = () => {
+        setUser(null);
+        setPage('login');
+    };
 
-  const handleMovieSelect = (movie: Movie) => {
-    setSelectedMovie(movie);
-    navigateTo('movie');
-  };
+    // Funciones de película
+    const handleMovieSelect = (movie: Movie) => {
+        setSelectedMovie(movie);
+        setPage('movieDetail');
+    };
 
-  const handleBuyTickets = (cinema: Cinema) => {
-    if (!user) {
-      navigateTo('login');
-      return;
-    }
-    setSelectedCinema(cinema);
-    alert('Selección de asientos aún no implementada');
-  };
+    const handleBack = () => {
+        setSelectedMovie(null);
+        setPage('home');
+    };
 
-  const handleBuyMovie = () => {
-    if (!user) {
-      navigateTo('login');
-      return;
-    }
-    alert('Película comprada exitosamente');
-  };
+    // Función de compra de boletos (mock)
+    const handleBuyTickets = (cinema: Cinema) => {
+        alert(`Comprando boletos para ${selectedMovie?.title} en ${cinema.name}.`);
+    };
 
-  return (
-    <div className="min-h-screen bg-black">
-      {currentPage === 'home' && (
-        <Home
-          user={user}
-          onMovieSelect={handleMovieSelect}
-          onNavigate={navigateTo}
-          onLogout={handleLogout}
-        />
-      )}
-      {currentPage === 'login' && (
-        <Login
-          onLogin={handleLogin}
-          onNavigate={navigateTo}
-        />
-      )}
-      {currentPage === 'register' && (
-        <Register
-          onRegister={handleRegister}
-          onNavigate={navigateTo}
-        />
-      )}
-      {currentPage === 'movie' && selectedMovie && (
-        <MovieDetail
-          movie={selectedMovie}
-          user={user}
-          onBack={() => navigateTo('home')}
-          onBuyTickets={handleBuyTickets}
-          onBuyMovie={handleBuyMovie}
-        />
-      )}
-      {currentPage === 'profile' && user && (
-        <UserProfile
-          user={user}
-          onBack={() => navigateTo('home')}
-          onLogout={handleLogout}
-        />
-      )}
-      {currentPage === 'workshops' && (
-        <Workshops
-          user={user}
-          onBack={() => navigateTo('home')}
-        />
-      )}
-      {currentPage === 'festivals' && (
-        <Festivals
-          user={user}
-          onBack={() => navigateTo('home')}
-        />
-      )}
-      {currentPage === 'chatbot' && (
-        <ChatbotComponent
-          onBack={() => navigateTo('home')}
-        />
-      )}
-    </div>
-  );
+    // Función de compra de película (mock)
+    const handleBuyMovie = () => {
+        alert(`Comprando la película ${selectedMovie?.title} por $${selectedMovie?.price}.`);
+    };
+
+    // Lógica para determinar si el Chatbot debe estar visible
+    const isChatbotVisible = page !== 'login' && page !== 'register';
+
+    // Renderizado condicional de la página
+    const renderPage = () => {
+        switch (page) {
+            case 'home':
+                return (
+                    <Home
+                        user={user}
+                        onMovieSelect={handleMovieSelect}
+                        onNavigate={handleNavigate}
+                        onLogout={handleLogout}
+                    />
+                );
+            case 'login':
+                return <Login onLogin={handleLogin} onNavigate={handleNavigate} />;
+            case 'register':
+                return <Register onNavigate={handleNavigate} />;
+            case 'movieDetail':
+                if (selectedMovie) {
+                    return (
+                        <MovieDetail
+                            movie={selectedMovie}
+                            user={user}
+                            onBack={handleBack}
+                            onBuyTickets={handleBuyTickets}
+                            onBuyMovie={handleBuyMovie}
+                        />
+                    );
+                }
+                // Fallback si no hay película seleccionada
+                return <Home user={user} onMovieSelect={handleMovieSelect} onNavigate={handleNavigate} onLogout={handleLogout} />;
+            default:
+                // Podrías tener un componente NotFound aquí
+                return <div>Página no encontrada</div>;
+        }
+    };
+
+    return (
+        <div className="relative min-h-screen">
+            {/* Contenido de la página */}
+            {renderPage()}
+
+            {/* EL CHATBOT FLOTANTE SE RENDERIZA AQUÍ, FUERA DEL RENDERIZADO DE PÁGINAS */}
+            {isChatbotVisible && <Chatbot />}
+        </div>
+    );
 }
+
+export default App;
