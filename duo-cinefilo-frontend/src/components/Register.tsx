@@ -25,7 +25,7 @@ export function Register({ onRegister, onNavigate }: RegisterProps) {
     };
 
     return (
-        <div className="min-h-screen bg-black flex items-center justify-center p-4">
+        <div className="min-h-screen  flex items-center justify-center p-4">
         <div className="w-full max-w-md">
             <div className="text-center mb-8">
             <div className="flex items-center justify-center gap-2 mb-4">
@@ -38,7 +38,7 @@ export function Register({ onRegister, onNavigate }: RegisterProps) {
             <form onSubmit={handleSubmit} className="bg-white/5 backdrop-blur border border-white/10 rounded-lg p-8">
             <div className="space-y-4">
                 <div>
-                <Label htmlFor="name" className="text-white">
+                <Label htmlFor="name" className="text-white mb-2">
                     Nombre Completo
                 </Label>
                 <Input
@@ -53,7 +53,7 @@ export function Register({ onRegister, onNavigate }: RegisterProps) {
                 </div>
 
                 <div>
-                <Label htmlFor="email" className="text-white" style={{ marginTop: '20px' }}>
+                <Label htmlFor="email" className="text-white mb-2">
                     Correo Electrónico
                 </Label>
                 <Input
@@ -68,7 +68,7 @@ export function Register({ onRegister, onNavigate }: RegisterProps) {
                 </div>
 
                 <div>
-                <Label htmlFor="password" className="text-white" style={{ marginTop: '20px'}}>
+                <Label htmlFor="password" className="text-white mb-2" style={{ marginTop: '20px'}}>
                     Contraseña
                 </Label>
                 <Input
@@ -83,7 +83,7 @@ export function Register({ onRegister, onNavigate }: RegisterProps) {
                 </div>
 
                 <div>
-                <Label htmlFor="confirmPassword" className="text-white" style={{ marginTop: '20px' }}>
+                <Label htmlFor="confirmPassword" className="text-white mb-2" style={{ marginTop: '20px' }}>
                     Confirmar Contraseña
                 </Label>
                 <Input
@@ -103,7 +103,7 @@ export function Register({ onRegister, onNavigate }: RegisterProps) {
             <div className="mt-50 text-center" style={{ marginTop: '20px' , marginBottom: '20px' }}>
                 <Button
                 type="submit"
-                className="w-full bg-red-600 hover:bg-red-700 text-white"
+                className="w-full text-white"
                 >
                 Crear Cuenta
                 </Button>
@@ -114,7 +114,7 @@ export function Register({ onRegister, onNavigate }: RegisterProps) {
                 ¿Ya tienes cuenta?{' '}
                 <button
                 onClick={() => onNavigate('login')}
-                className="text-red-600 hover:text-red-500"
+                className="text-white/60 hover:text-white"
                 >
                 Inicia sesión
                 </button>

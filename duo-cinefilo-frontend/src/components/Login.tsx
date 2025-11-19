@@ -26,7 +26,7 @@ export function Login({ onLogin, onNavigate }: LoginProps) {
                     <div className="flex items-center justify-center gap-2 mb-4">
                         <div className='flex items-center gap-2 text-foreground'>
                             <img src={logo} alt="Logo" className="h-10 w-10" />
-                            <span className="text-2xl font-semibold tracking-wider">CINETECA</span>
+                            <span className="text-2xl font-semibold tracking-wider">DUO-CINEFILO</span>
                         </div>
                     </div>
                     <h1 className="text-foreground text-3xl font-bold mb-2">Iniciar Sesión</h1>
