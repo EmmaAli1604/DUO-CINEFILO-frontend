@@ -115,19 +115,27 @@ type HomeProps = {
 export function Home({ user, onMovieSelect, onNavigate, onLogout }: HomeProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedGenre, setSelectedGenre] = useState('Todos');
-  const [featuredMovie, setFeaturedMovie] = useState(MOCK_MOVIES[0]);
+  const [movies, setMovies] = useState<Movie[]>(MOCK_MOVIES);   // empezamos con mock
+  const [featuredMovie, setFeaturedMovie] = useState<Movie>(MOCK_MOVIES[0]);
   const [scrolled, setScrolled] = useState(false);
+
 
   // Cambiar película destacada cada 8 segundos
   useEffect(() => {
-    const interval = setInterval(() => {
-      const randomIndex = Math.floor(Math.random() * MOCK_MOVIES.length);
-      setFeaturedMovie(MOCK_MOVIES[randomIndex]);
-    }, 8000);
-    return () => clearInterval(interval);
-  }, []);
+      if (movies.length === 0) return; // por seguridad
+
+        const interval = setInterval(() => {
+            const randomIndex = Math.floor(Math.random() * movies.length);
+            setFeaturedMovie(movies[randomIndex]);
+        }, 8000);
+
+        return () => clearInterval(interval);
+  }, [movies]);
+
+
 
   // Detectar scroll para cambiar el header
+
   useEffect(() => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 50);
@@ -136,16 +144,56 @@ export function Home({ user, onMovieSelect, onNavigate, onLogout }: HomeProps) {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const filteredMovies = MOCK_MOVIES.filter((movie) => {
-    const matchesSearch = movie.title.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesGenre = selectedGenre === 'Todos' || movie.genre === selectedGenre;
-    return matchesSearch && matchesGenre;
+  const filteredMovies = movies.filter((movie) => {
+     const matchesSearch = movie.title.toLowerCase().includes(searchQuery.toLowerCase());
+     const matchesGenre = selectedGenre === 'Todos' || movie.genre === selectedGenre;
+     return matchesSearch && matchesGenre;
   });
 
-  const dramaMovies = MOCK_MOVIES.filter(m => m.genre === 'Drama');
-  const sciFiMovies = MOCK_MOVIES.filter(m => m.genre === 'Ciencia Ficción');
-  const actionMovies = MOCK_MOVIES.filter(m => m.genre === 'Acción');
-  const topRatedMovies = [...MOCK_MOVIES].sort((a, b) => b.rating - a.rating).slice(0, 6);
+  useEffect(() => {
+      async function loadMovies() {
+        try {
+          const res = await fetch('http://127.0.0.1:8000/api/peliculas/');
+          if (!res.ok) {
+            console.error('Error al obtener películas del backend');
+            return;
+          }
+
+          const data = await res.json();
+
+          if (Array.isArray(data) && data.length > 0) {
+            // Ajusta campos vacíos si vienen así desde el backend
+            const normalized: Movie[] = data.map((m: any) => ({
+              id: String(m.id),
+              title: m.title ?? '',
+              director: m.director ?? '',
+              description: m.description ?? 'Descripción no disponible',
+              genre: m.genre && m.genre !== '' ? m.genre : 'Sin género',
+              imageUrl: m.imageUrl ?? '',
+              price: typeof m.price === 'number' ? m.price : 0,
+              rating: typeof m.rating === 'number' ? m.rating : 0,
+              year: typeof m.year === 'number' ? m.year : 0,
+              duration: m.duration ?? '',
+            }));
+
+            setMovies(normalized);
+            setFeaturedMovie(normalized[0]);
+          } else {
+            console.warn('El backend devolvió una lista vacía. Se mantienen MOCK_MOVIES.');
+          }
+        } catch (error) {
+          console.error('Error de red al obtener películas', error);
+          // En caso de error, nos quedamos con MOCK_MOVIES
+        }
+      }
+
+      loadMovies();
+   }, []);
+
+  const dramaMovies = movies.filter(m => m.genre === 'Drama');
+  const sciFiMovies = movies.filter(m => m.genre === 'Ciencia Ficción');
+  const actionMovies = movies.filter(m => m.genre === 'Acción');
+  const topRatedMovies = [...movies].sort((a, b) => b.rating - a.rating).slice(0, 6);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-black via-gray-900 to-black">
@@ -326,7 +374,7 @@ export function Home({ user, onMovieSelect, onNavigate, onLogout }: HomeProps) {
             </div>
 
             <MovieCarousel 
-              movies={MOCK_MOVIES} 
+              movies={movies} 
               title="Populares en CineMax" 
               onMovieSelect={onMovieSelect}
             />
