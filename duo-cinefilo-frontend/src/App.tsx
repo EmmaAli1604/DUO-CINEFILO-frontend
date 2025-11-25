@@ -24,7 +24,7 @@ export type Cinema = {
     id: string;
     name: string;
     address: string;
-    distance: string;
+    horarios: string[];
 };
 
 
@@ -53,6 +53,12 @@ function App() {
         }
     };
 
+    const handleRegister = (name: string, email: string, password: string) => {
+        // Lógica de registro simple. En una app real, esto llamaría a una API.
+        setUser({ id: 'newUser', name, email });
+        setPage('home');
+    }
+
     const handleLogout = () => {
         setUser(null);
         setPage('login');
@@ -70,13 +76,8 @@ function App() {
     };
 
     // Función de compra de boletos (mock)
-    const handleBuyTickets = (cinema: Cinema) => {
-        alert(`Comprando boletos para ${selectedMovie?.title} en ${cinema.name}.`);
-    };
-
-    // Función de compra de película (mock)
-    const handleBuyMovie = () => {
-        alert(`Comprando la película ${selectedMovie?.title} por $${selectedMovie?.price}.`);
+    const handleWatchTrailer = () => {
+        alert(`Ver trailer de ${selectedMovie?.title} `);
     };
 
     // Lógica para determinar si el Chatbot debe estar visible
@@ -97,7 +98,7 @@ function App() {
             case 'login':
                 return <Login onLogin={handleLogin} onNavigate={handleNavigate} />;
             case 'register':
-                return <Register onNavigate={handleNavigate} />;
+                return <Register onNavigate={handleNavigate} onRegister={handleRegister}/>;
             case 'movieDetail':
                 if (selectedMovie) {
                     return (
@@ -105,8 +106,7 @@ function App() {
                             movie={selectedMovie}
                             user={user}
                             onBack={handleBack}
-                            onBuyTickets={handleBuyTickets}
-                            onBuyMovie={handleBuyMovie}
+                            onWatchTrailer={handleWatchTrailer}
                         />
                     );
                 }

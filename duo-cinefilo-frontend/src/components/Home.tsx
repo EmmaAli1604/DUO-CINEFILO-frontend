@@ -166,7 +166,7 @@ export function Home({ user, onMovieSelect, onNavigate, onLogout }: HomeProps) {
                         >
                             <img
                                 src={logo}
-                                alt="CineMax"
+                                alt="Duo-Cinefilo"
                                 className="h-8 md:h-10 transition-transform group-hover:scale-110"
                             />
                         </div>
@@ -176,7 +176,7 @@ export function Home({ user, onMovieSelect, onNavigate, onLogout }: HomeProps) {
                             <Search className="w-5 h-5 text-muted-foreground" />
                             <input
                                 type="text"
-                                placeholder="Buscar películas, directores..."
+                                placeholder="Buscar películas..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 className="bg-transparent text-foreground outline-none flex-1 placeholder:text-muted-foreground"
@@ -352,7 +352,7 @@ export function Home({ user, onMovieSelect, onNavigate, onLogout }: HomeProps) {
 
                         <MovieCarousel
                             movies={MOCK_MOVIES}
-                            title="Populares en CineMax"
+                            title="Populares"
                             onMovieSelect={onMovieSelect}
                         />
 
