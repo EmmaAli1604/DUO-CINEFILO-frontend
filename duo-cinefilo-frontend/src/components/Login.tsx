@@ -1,3 +1,14 @@
+/**
+ * Componente Login.
+ *
+ * Pantalla encargada de manejar el inicio de sesión del usuario.
+ * Permite ingresar correo y contraseña, valida que los campos estén completos
+ * y ejecuta la función de autenticación enviada desde App.
+ *
+ * Props:
+ * - onLogin: Función que autentica al usuario en la aplicación.
+ * - onNavigate: Función que permite cambiar de pantalla (home / register).
+ */
 import { useState } from 'react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -9,10 +20,25 @@ onLogin: (email: string, password: string) => void;
 onNavigate: (page: 'home' | 'register') => void;
 };
 
+/**
+ * Renderiza el formulario de inicio de sesión.
+ *
+ * El componente gestiona internamente el estado del email y contraseña,
+ * y valida que ambos campos hayan sido completados antes de llamar a `onLogin`.
+ */
 export function Login({ onLogin, onNavigate }: LoginProps) {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
 
+    /**
+     * Maneja el envío del formulario.
+     *
+     * Evita el refresco automático, valida los campos y ejecuta el callback
+     * de autenticación recibido por props.
+     *
+     * Args:
+     *   e: Evento de formulario.
+     */
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         onLogin(email, password);

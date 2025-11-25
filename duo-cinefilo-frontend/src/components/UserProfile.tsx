@@ -1,3 +1,15 @@
+/**
+ * Componente UserProfile.
+ *
+ * Pantalla que muestra la información del usuario autenticado
+ * así como un historial simple de compras.
+ * Permite cerrar sesión y regresar a la pantalla principal.
+ *
+ * Props:
+ * - user: Datos del usuario autenticado.
+ * - onBack: Acción para volver a la pantalla anterior.
+ * - onLogout: Acción para cerrar sesión.
+ */
 import { ArrowLeft, Film, Ticket } from 'lucide-react';
 import type { User } from '../App';
 import { Button } from './ui/button';
@@ -26,6 +38,15 @@ const MOCK_PURCHASES = [
     price: 17.98
   }
 ];
+
+/**
+ * Componente que renderiza el perfil del usuario.
+ *
+ * Incluye:
+ * - Datos básicos del usuario.
+ * - Botón para cerrar sesión.
+ * - Historial de compras (mock).
+ */
 
 export function UserProfile({ user, onBack, onLogout }: UserProfileProps) {
   return (

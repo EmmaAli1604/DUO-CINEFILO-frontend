@@ -1,3 +1,9 @@
+/**
+ * App.tsx
+ *
+ * Punto central de la aplicación. Gestiona las pantallas principales
+ * (inicio, login, registro) y mantiene el estado global del usuario.
+ */
 import { useState } from 'react';
 import type { ComponentType } from 'react';
 import { Home } from './components/Home';
@@ -51,7 +57,14 @@ export type AppPage =
   | 'chatbot';
 
 export default function App() {
+
   const [currentPage, setCurrentPage] = useState<AppPage>('home');
+    /**
+   * Estado principal del usuario autenticado.
+   *
+   * `user`: Contiene la información del usuario cuando está autenticado.
+   * `setUser`: Permite actualizar el usuario tras login o logout.
+   */
   const [user, setUser] = useState<User | null>(null);
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
   const [selectedCinema, setSelectedCinema] = useState<Cinema | null>(null);
@@ -59,26 +72,54 @@ export default function App() {
   const navigateTo = (page: AppPage) => {
     setCurrentPage(page);
   };
-
+    /**
+   * Maneja el inicio de sesión del usuario.
+   *
+   * @param email Correo electrónico ingresado.
+   * @param password Contraseña ingresada (no validada en esta versión).
+   */
   const handleLogin = (email: string, password: string) => {
     setUser({ id: '1', name: 'Usuario', email });
     navigateTo('home');
   };
 
+    /**
+   * Maneja el registro de un nuevo usuario.
+   *
+   * @param name Nombre capturado en el formulario.
+   * @param email Correo electrónico capturado.
+   * @param password Contraseña definida por el usuario.
+   */
   const handleRegister = (name: string, email: string, password: string) => {
     setUser({ id: '1', name, email });
     navigateTo('home');
   };
 
+    /**
+   * Cierra la sesión del usuario y regresa a la pantalla de inicio.
+   */
   const handleLogout = () => {
     setUser(null);
     navigateTo('home');
   };
 
+    /**
+   * Maneja la selección de una película desde la vista principal.
+   * Al seleccionar, cambia a la vista de detalle de película.
+   *
+   * @param movie Película seleccionada por el usuario.
+   */
   const handleMovieSelect = (movie: Movie) => {
     setSelectedMovie(movie);
     navigateTo('movie');
   };
+
+    /**
+   * Maneja el flujo de compra de boletos en un cine.
+   * Si el usuario no está autenticado, lo redirige al login.
+   *
+   * @param cinema Cine seleccionado para la compra.
+   */
 
   const handleBuyTickets = (cinema: Cinema) => {
     if (!user) {
@@ -89,6 +130,10 @@ export default function App() {
     alert('Selección de asientos aún no implementada');
   };
 
+    /**
+   * Maneja la compra digital de una película.
+   * Si el usuario no está autenticado, lo envía a login.
+   */
   const handleBuyMovie = () => {
     if (!user) {
       navigateTo('login');

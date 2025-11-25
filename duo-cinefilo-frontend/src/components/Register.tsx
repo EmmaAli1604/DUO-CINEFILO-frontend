@@ -1,3 +1,14 @@
+/**
+ * Componente Register.
+ *
+ * Pantalla para registrar un nuevo usuario. El componente recopila nombre,
+ * correo y contraseña, valida que las contraseñas coincidan y llama a la
+ * función de registro enviada desde App.
+ *
+ * Props:
+ * - onRegister: Función que crea el nuevo usuario en la aplicación.
+ * - onNavigate: Permite navegar entre login y home.
+ */
 import { useState } from 'react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -9,12 +20,28 @@ type RegisterProps = {
     onNavigate: (page: 'home' | 'login') => void;
 };
 
+/**
+ * Renderiza el formulario de registro de usuario.
+ *
+ * El componente valida que las contraseñas coincidan, y si es así,
+ * envía la información a la función `onRegister`.
+ */
+
 export function Register({ onRegister, onNavigate }: RegisterProps) {
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
 
+    /**
+     * Valida los campos del formulario y ejecuta el registro.
+     *
+     * Args:
+     *   e: Evento del formulario.
+     *
+     * Raises:
+     *   Error visual mediante alert si las contraseñas no coinciden.
+     */
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (password !== confirmPassword) {

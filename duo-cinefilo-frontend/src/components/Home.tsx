@@ -1,9 +1,26 @@
+/**
+ * Home.tsx
+ *
+ * Página principal de la aplicación. Muestra:
+ * - Barra de navegación
+ * - Película destacada
+ * - Carruseles de películas
+ * - Búsqueda y filtros por género
+ * - Conexión al backend para cargar películas reales
+ *
+ * Esta vista es la más importante del frontend, ya que controla la
+ * presentación del catálogo y la interacción inicial del usuario.
+ */
 import { useState, useEffect } from 'react';
 import { MovieCarousel } from './MovieCarousel';
 import type { Movie, User } from '../App';
 import { Search, User as UserIcon, LogOut, Play, Info, TrendingUp, Sparkles } from 'lucide-react';
 import logo from '../assets/logo.png';
 
+/**
+ * Listado local de películas mock para fallback en caso
+ * de que el backend no responda.
+ */
 const MOCK_MOVIES: Movie[] = [
   {
     id: '1',
@@ -106,13 +123,25 @@ const MOCK_MOVIES: Movie[] = [
 const GENRES = ['Todos', 'Drama', 'Acción', 'Ciencia Ficción', 'Thriller', 'Romance', 'Musical'];
 
 type HomeProps = {
+    /** Usuario autenticado actualmente */
   user: User | null;
+    /** Maneja cuando el usuario selecciona una película */
   onMovieSelect: (movie: Movie) => void;
+    /** Cambia entre las pantallas principales */
   onNavigate: (page: 'home' | 'login' | 'register') => void;
+    /** Ejecuta el cierre de sesión */
   onLogout: () => void;
 };
 
 export function Home({ user, onMovieSelect, onNavigate, onLogout }: HomeProps) {
+
+    /**
+   * `searchQuery`: texto para el buscador
+   * `selectedGenre`: filtro activo
+   * `movies`: lista actual de películas (mock + backend)
+   * `featuredMovie`: película destacada que cambia cada 8s
+   * `scrolled`: detecta si el usuario hizo scroll
+   */
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedGenre, setSelectedGenre] = useState('Todos');
   const [movies, setMovies] = useState<Movie[]>(MOCK_MOVIES);   // empezamos con mock
@@ -150,6 +179,10 @@ export function Home({ user, onMovieSelect, onNavigate, onLogout }: HomeProps) {
      return matchesSearch && matchesGenre;
   });
 
+    /**
+   * Carga las películas del backend.
+   * Si hay error, mantiene los MOCK_MOVIES.
+   */
   useEffect(() => {
       async function loadMovies() {
         try {

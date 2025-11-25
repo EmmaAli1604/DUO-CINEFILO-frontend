@@ -1,3 +1,18 @@
+/**
+ * Componente MovieCarousel
+ *
+ * Muestra una lista horizontal desplazable de tarjetas de películas.
+ * Incluye botones laterales para facilitar la navegación.
+ *
+ * Props:
+ *  - movies (Movie[]): Lista de películas a mostrar.
+ *  - title (string): Título de la sección del carrusel.
+ *  - onMovieSelect(movie): Función llamada cuando el usuario selecciona una película.
+ *
+ * Comportamiento:
+ *  - Detecta automáticamente si se puede desplazar a izquierda o derecha.
+ *  - Utiliza un contenedor con overflow horizontal.
+ */
 import { useState, useRef } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { MovieCard } from './MovieCard';
@@ -14,6 +29,10 @@ export function MovieCarousel({ movies, title, onMovieSelect }: MovieCarouselPro
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
 
+    /**
+   * Revisa si el contenedor permite desplazarse hacia izquierda o derecha.
+   * Se ejecuta con cada scroll.
+   */
   const checkScroll = () => {
     if (scrollContainerRef.current) {
       const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
@@ -22,6 +41,9 @@ export function MovieCarousel({ movies, title, onMovieSelect }: MovieCarouselPro
     }
   };
 
+    /**
+   * Desplaza el carrusel suavemente hacia la izquierda o derecha.
+   */
   const scroll = (direction: 'left' | 'right') => {
     if (scrollContainerRef.current) {
       const scrollAmount = scrollContainerRef.current.clientWidth * 0.8;
