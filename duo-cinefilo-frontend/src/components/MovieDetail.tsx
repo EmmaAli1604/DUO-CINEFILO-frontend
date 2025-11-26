@@ -35,6 +35,7 @@ export function MovieDetail({ movie, user, onBack, onWatchTrailer }: MovieDetail
   const [cinemas, setCinemas] = useState<Cinema[]>([]);
   const [loadingCinetecas, setLoadingCinetecas] = useState(false);
   const [cinetecasError, setCinetecasError] = useState<string | null>(null);
+  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
 
   const getCookie = (name: string) => {
     return document.cookie
@@ -59,7 +60,7 @@ export function MovieDetail({ movie, user, onBack, onWatchTrailer }: MovieDetail
 
     console.log('Enviando al backend:', JSON.stringify(requestBody, null, 2));
 
-    fetch('http://127.0.0.1:8000/horarios/pelis/', {
+    fetch(`${apiBaseUrl}/horarios/pelis/`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -130,7 +131,7 @@ export function MovieDetail({ movie, user, onBack, onWatchTrailer }: MovieDetail
 
     const authHeader = decodeURIComponent(tokenCookie);
 
-    fetch('http://127.0.0.1:8000/comentario/get/', {
+    fetch(`${apiBaseUrl}/comentario/get/`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -238,7 +239,7 @@ export function MovieDetail({ movie, user, onBack, onWatchTrailer }: MovieDetail
         texto: newComment,
       };
 
-      const res = await fetch('http://127.0.0.1:8000/comentario/make/', {
+      const res = await fetch(`${apiBaseUrl}/comentario/make/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -253,7 +254,7 @@ export function MovieDetail({ movie, user, onBack, onWatchTrailer }: MovieDetail
       }
 
       setLoadingComments(true);
-      await fetch('http://127.0.0.1:8000/comentario/get/', {
+      await fetch(`${apiBaseUrl}/comentario/get/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

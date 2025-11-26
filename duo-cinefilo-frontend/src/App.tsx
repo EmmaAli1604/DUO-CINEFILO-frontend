@@ -37,6 +37,7 @@ function App() {
     const [user, setUser] = useState<User | null>(null);
     const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
     const [currentSearchQuery, setCurrentSearchQuery] = useState<string>('');
+    const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
 
     // Utilidades simples para cookies de sesión
     const setSessionCookie = (name: string, value: string) => {
@@ -64,7 +65,7 @@ function App() {
     // Funciones de autenticación
     const handleLogin = async (email: string, password: string) => {
         try {
-            const res = await fetch('http://127.0.0.1:8000/users/login/', {
+            const res = await fetch(`${apiBaseUrl}/users/login/`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -102,7 +103,7 @@ function App() {
 
     const handleRegister = async (userData: any) => {
         try {
-            const res = await fetch('http://127.0.0.1:8000/users/register/', {
+            const res = await fetch(`${apiBaseUrl}/users/register/`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -142,7 +143,7 @@ function App() {
             const username = decodeURIComponent(usernameCookie);
             const authToken = decodeURIComponent(tokenCookie);
 
-            const res = await fetch('http://127.0.0.1:8000/users/logout/', {
+            const res = await fetch(`${apiBaseUrl}/users/logout/`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

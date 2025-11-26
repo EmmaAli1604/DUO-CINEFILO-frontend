@@ -129,6 +129,7 @@ export function Home({ user, onMovieSelect, onNavigate, onLogout, onStartSearch 
     const [taggedMovies, setTaggedMovies] = useState<Movie[] | null>(null);
     const [loadingTagged, setLoadingTagged] = useState(false);
     const [taggedError, setTaggedError] = useState<string | null>(null);
+    const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
 
     // Búsqueda contra backend
     const [searchMovies, setSearchMovies] = useState<Movie[] | null>(null);
@@ -137,9 +138,9 @@ export function Home({ user, onMovieSelect, onNavigate, onLogout, onStartSearch 
     const [searchActive, setSearchActive] = useState(false);
 
     // Constantes para construir URLs desde la API
-    const API_URL = 'http://127.0.0.1:8000/peliculas/all';
+    const API_URL = `${apiBaseUrl}/peliculas/all`;
     // Endpoint para obtener etiquetas desde el backend (se usa en el montaje)
-    const TAGS_URL = 'http://127.0.0.1:8000/peliculas/tags';
+    const TAGS_URL = `${apiBaseUrl}/peliculas/tags`;
     const TMDB_IMAGE_BASE = 'https://image.tmdb.org/t/p/w500';
     const YT_WATCH_BASE = 'https://www.youtube.com/watch?v='; // por si luego lo usamos
 
@@ -279,7 +280,7 @@ export function Home({ user, onMovieSelect, onNavigate, onLogout, onStartSearch 
                 const n = Number(idTag);
                 return Number.isFinite(n) ? n : String(idTag);
             })();
-            const res = await fetch('http://127.0.0.1:8000/peliculas/tag/', {
+            const res = await fetch(`${apiBaseUrl}/peliculas/tag/`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ idetiqueta: idValue }),
@@ -589,7 +590,7 @@ export function Home({ user, onMovieSelect, onNavigate, onLogout, onStartSearch 
                                             const n = Number(tag.id);
                                             return Number.isFinite(n) ? n : String(tag.id);
                                         })();
-                                        const res = await fetch('http://127.0.0.1:8000/peliculas/tag/', {
+                                        const res = await fetch(`${apiBaseUrl}/peliculas/tag/`, {
                                             method: 'POST',
                                             headers: {
                                                 'Content-Type': 'application/json',

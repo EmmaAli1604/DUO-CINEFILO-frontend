@@ -20,6 +20,7 @@ const Chatbot = () => {
   const [audio, setAudio] = useState<HTMLAudioElement | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
 
   const getCookie = (name: string) => {
     return document.cookie
@@ -47,7 +48,7 @@ const Chatbot = () => {
       const requestBody = { texto: text };
       console.log('Enviando a TTS:', JSON.stringify(requestBody, null, 2));
 
-      const response = await fetch('http://127.0.0.1:8000/chat/tts/', {
+      const response = await fetch(`${apiBaseUrl}/chat/tts/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(requestBody),
@@ -80,7 +81,7 @@ const Chatbot = () => {
       };
       console.log('Enviando a Bot:', JSON.stringify(requestBody, null, 2));
 
-      const res = await fetch('http://127.0.0.1:8000/chat/msj/', {
+      const res = await fetch(`${apiBaseUrl}/chat/msj/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(requestBody),
@@ -134,8 +135,7 @@ const Chatbot = () => {
       const username = getCookie('username');
       const token = getCookie('authToken');
       if (username && token) {
-        const initialMessage = `NOMBRE=${decodeURIComponent(username)} TOKEN=${decodeURIComponent(token)}`;
-        sendBotRequest(initialMessage);
+        sendBotRequest("hola");
       }
     }
   }, [isOpen]);
