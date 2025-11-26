@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { MovieCarousel } from './MovieCarousel';
 import type { Movie, User } from '../App';
-import { Search, User as UserIcon, LogOut, Play, Info, TrendingUp, Sparkles } from 'lucide-react';
+import { Search, User as UserIcon, LogOut, Play, Info, TrendingUp, Sparkles, ChevronLeft, ChevronRight } from 'lucide-react';
 import logo from '../assets/logo.png';
 
 // Datos mock originales (se mantienen como respaldo/fallback)
@@ -129,7 +129,6 @@ export function Home({ user, onMovieSelect, onNavigate, onLogout, onStartSearch 
     const [taggedMovies, setTaggedMovies] = useState<Movie[] | null>(null);
     const [loadingTagged, setLoadingTagged] = useState(false);
     const [taggedError, setTaggedError] = useState<string | null>(null);
-    // Controles de scroll para la fila de etiquetas (descartados a petición del usuario)
 
     // Búsqueda contra backend
     const [searchMovies, setSearchMovies] = useState<Movie[] | null>(null);
@@ -262,7 +261,81 @@ export function Home({ user, onMovieSelect, onNavigate, onLogout, onStartSearch 
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    // Lógica de flechas/scroll horizontal eliminada
+    // =========================
+    // Secciones dinámicas por 2 etiquetas aleatorias
+    // =========================
+    type RandomSection = {
+        id: string;
+        nombre: string;
+        movies: Movie[];
+        loading: boolean;
+        error: string | null;
+    };
+    const [randomSections, setRandomSections] = useState<RandomSection[]>([]);
+
+    const fetchMoviesByTag = async (idTag: string | number): Promise<Movie[]> => {
+        try {
+            const idValue = ((): number | string => {
+                const n = Number(idTag);
+                return Number.isFinite(n) ? n : String(idTag);
+            })();
+            const res = await fetch('http://127.0.0.1:8000/peliculas/tag/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ idetiqueta: idValue }),
+            });
+            if (!res.ok) {
+                console.error('Fallo al cargar películas por etiqueta aleatoria:', res.status);
+                return [];
+            }
+            const data = await res.json().catch(() => null);
+            const items: any[] = Array.isArray(data)
+                ? data
+                : Array.isArray((data as any)?.results)
+                    ? (data as any).results
+                    : Array.isArray((data as any)?.peliculas)
+                        ? (data as any).peliculas
+                        : Array.isArray((data as any)?.movies)
+                            ? (data as any).movies
+                            : [];
+            return items.map(mapApiToMovie);
+        } catch (e) {
+            console.error('Error inesperado al cargar películas por etiqueta aleatoria:', e);
+            return [];
+        }
+    };
+
+    // Cuando se cargan las categorías, elegir 2 aleatorias (distintas) y cargar sus películas
+    useEffect(() => {
+        const pool = categories.filter((t) => t.id != null);
+        if (pool.length === 0) {
+            setRandomSections([]);
+            return;
+        }
+        // Elegir hasta 2 distintas
+        const shuffled = [...pool].sort(() => Math.random() - 0.5);
+        const picked = shuffled.slice(0, Math.min(2, shuffled.length));
+
+        const initial: RandomSection[] = picked.map((t) => ({
+            id: String(t.id!),
+            nombre: t.nombre,
+            movies: [],
+            loading: true,
+            error: null,
+        }));
+        setRandomSections(initial);
+
+        // Cargar películas para cada una
+        picked.forEach(async (t) => {
+            const movies = await fetchMoviesByTag(t.id!);
+            setRandomSections((prev) => prev.map((sec) =>
+                sec.id === String(t.id!)
+                    ? { ...sec, movies, loading: false, error: movies.length === 0 ? 'Sin resultados' : null }
+                    : sec
+            ));
+        });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [categories]);
 
     // Cambiar película destacada cada 8 segundos
     useEffect(() => {
@@ -289,9 +362,6 @@ export function Home({ user, onMovieSelect, onNavigate, onLogout, onStartSearch 
         return matchesSearch && matchesGenre;
     });
 
-    const dramaMovies = movies.filter(m => m.genre === 'Drama');
-    const sciFiMovies = movies.filter(m => m.genre === 'Ciencia Ficción');
-    const actionMovies = movies.filter(m => m.genre === 'Acción');
     const topRatedMovies = [...movies].sort((a, b) => b.rating - a.rating).slice(0, 6);
 
     // Abrir trailer en nueva pestaña si existe; si no, notificar
@@ -437,7 +507,7 @@ export function Home({ user, onMovieSelect, onNavigate, onLogout, onStartSearch 
                             </div>
 
                             {/* Título - Usa text-foreground (cinema-cream) */}
-                            <h1 className="text-5xl md:text-7xl font-bold text-foreground leading-tight animate-slide-up">
+                            <h1 className="text-5xl md:text-7xl font-bold text-foreground leading-tight animate-slide-up-fade break-words">
                                 {featuredMovie.title}
                             </h1>
 
@@ -494,11 +564,7 @@ export function Home({ user, onMovieSelect, onNavigate, onLogout, onStartSearch 
             {/* FILTROS DE GÉNERO / ETIQUETAS */}
             <div className="sticky top-16 md:top-20 z-40 bg-gradient-to-b from-background via-background to-transparent py-6 backdrop-blur-sm">
                 <div className="container mx-auto px-4 lg:px-8">
-                    <div>
-                        {/* Contenedor scrollable simple de etiquetas (sin flechas) */}
-                        <div
-                            className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide px-2"
-                        >
+                    <div className="flex flex-wrap justify-center gap-3">
                         {categories.map((tag) => (
                             <button
                                 key={tag.id ?? tag.nombre}
@@ -559,7 +625,7 @@ export function Home({ user, onMovieSelect, onNavigate, onLogout, onStartSearch 
                                         setLoadingTagged(false);
                                     }
                                 }}
-                                className={`px-6 py-2.5 rounded-full whitespace-nowrap font-medium transition-all ${
+                                className={`px-6 py-2.5 rounded-full font-medium transition-all ${
                                     selectedGenre === tag.nombre
                                         // Botón activo: usa primary (cinema-rose) y glow shadow
                                         ? 'bg-primary text-primary-foreground shadow-lg shadow-cinema-rose/30 scale-105'
@@ -570,7 +636,6 @@ export function Home({ user, onMovieSelect, onNavigate, onLogout, onStartSearch 
                                 {tag.nombre}
                             </button>
                         ))}
-                        </div>
                     </div>
                 </div>
             </div>
@@ -630,29 +695,42 @@ export function Home({ user, onMovieSelect, onNavigate, onLogout, onStartSearch 
                             />
                         </div>
 
-                        <MovieCarousel
-                            movies={movies}
-                            title="Populares"
-                            onMovieSelect={onMovieSelect}
-                        />
+                        <div className="space-y-4">
+                            <div className="container mx-auto px-4 lg:px-8">
+                                <div className="flex items-center gap-3">
+                                    <Sparkles className="w-6 h-6 text-cinema-rose" />
+                                    <h2 className="text-foreground text-2xl md:text-3xl font-bold">Populares</h2>
+                                </div>
+                            </div>
+                            <MovieCarousel
+                                movies={movies}
+                                title=""
+                                onMovieSelect={onMovieSelect}
+                            />
+                        </div>
 
-                        <MovieCarousel
-                            movies={actionMovies}
-                            title="Acción y Aventura"
-                            onMovieSelect={onMovieSelect}
-                        />
-
-                        <MovieCarousel
-                            movies={dramaMovies}
-                            title="Dramas Aclamados"
-                            onMovieSelect={onMovieSelect}
-                        />
-
-                        <MovieCarousel
-                            movies={sciFiMovies}
-                            title="Ciencia Ficción"
-                            onMovieSelect={onMovieSelect}
-                        />
+                        {/* Secciones dinámicas por etiquetas aleatorias */}
+                        {randomSections.map((sec) => (
+                            <div key={sec.id} className="space-y-4">
+                                <div className="container mx-auto px-4 lg:px-8">
+                                    <div className="flex items-center gap-3">
+                                        <Sparkles className="w-6 h-6 text-cinema-rose" />
+                                        <h2 className="text-foreground text-2xl md:text-3xl font-bold">{sec.nombre}</h2>
+                                    </div>
+                                </div>
+                                {sec.loading ? (
+                                    <div className="text-muted-foreground px-4">Cargando películas...</div>
+                                ) : sec.error ? (
+                                    <div className="text-cinema-rose px-4">{sec.error}</div>
+                                ) : (
+                                    <MovieCarousel
+                                        movies={sec.movies.filter((m) => m.title.toLowerCase().includes(searchQuery.toLowerCase()))}
+                                        title=""
+                                        onMovieSelect={onMovieSelect}
+                                    />
+                                )}
+                            </div>
+                        ))}
                     </>
                 ) : (
                     <MovieCarousel

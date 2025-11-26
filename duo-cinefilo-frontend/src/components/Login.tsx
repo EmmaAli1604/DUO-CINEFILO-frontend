@@ -30,7 +30,7 @@ export function Login({ onLogin, onNavigate }: LoginProps) {
                             <span className="text-2xl font-semibold tracking-wider">DUO-CINEFILO</span>
                         </div>
                     </div>
-                    <h1 className="text-foreground text-3xl font-bold mb-2">Iniciar Sesión</h1>
+                    <h1 className="text-foreground text-3xl font-bold mb-2 break-words">Iniciar Sesión</h1>
                     <p className="text-muted-foreground text-sm">Accede a tu cuenta para continuar</p>
                 </div>
 

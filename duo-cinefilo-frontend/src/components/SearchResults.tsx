@@ -59,7 +59,9 @@ export function SearchResults({ query, onBackHome, onMovieSelect }: SearchResult
 
       const tokenCookie = getCookie('authToken');
       if (!tokenCookie) {
-        alert('para ver los mensajes, inicia sesion');
+        setError('Para realizar una búsqueda, por favor inicia sesión.');
+        setLoading(false);
+        setResults([]);
         return;
       }
       const authHeader = decodeURIComponent(tokenCookie);
@@ -103,27 +105,30 @@ export function SearchResults({ query, onBackHome, onMovieSelect }: SearchResult
   }, [query]);
 
   return (
-    <div className="min-h-screen bg-background text-foreground pt-20 pb-12">
+    <div className="min-h-screen bg-background text-foreground pt-24 pb-12">
       <div className="container mx-auto px-4 lg:px-8">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl md:text-3xl font-bold">Resultados de búsqueda</h1>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 gap-4">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold break-words">Resultados para "{query}"</h1>
+          </div>
           <button
             onClick={onBackHome}
-            className="text-sm bg-primary hover:bg-cinema-glow text-primary-foreground px-4 py-2 rounded-full"
+            className="text-sm bg-primary hover:bg-cinema-glow text-primary-foreground px-4 py-2 rounded-full transition-colors"
             title="Volver al inicio"
           >
             Volver al inicio
           </button>
         </div>
 
-        {loading && <div className="text-muted-foreground">Cargando...</div>}
-        {error && <div className="text-cinema-rose">{error}</div>}
+        {loading && <div className="text-muted-foreground text-center py-8">Cargando...</div>}
+        
+        {error && <div className="text-cinema-rose text-center py-8">{error}</div>}
 
         {!loading && !error && (
           results.length === 0 ? (
-            <div className="text-muted-foreground">No hay resultados para "{query}"</div>
+            <div className="text-muted-foreground text-center py-8">No se encontraron películas que coincidan con tu búsqueda.</div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
               {results.map((m) => (
                 <div key={m.id}>
                   <MovieCard movie={m} onClick={() => onMovieSelect(m)} />

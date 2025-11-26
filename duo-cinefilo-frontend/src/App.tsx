@@ -4,7 +4,8 @@ import { SearchResults } from './components/SearchResults';
 import { Login } from './components/Login';
 import { Register } from './components/Register';
 import { MovieDetail } from './components/MovieDetail';
-import Chatbot  from './components/Chatbot'; // <-- ¡IMPORTACIÓN CLAVE!
+import Chatbot from './components/Chatbot';
+import NotFound from './components/NotFound';
 
 // Definiciones de tipos (asumiendo que estaban en App.tsx)
 export type Page = 'home' | 'login' | 'register' | 'movieDetail' | 'searchResults';
@@ -99,11 +100,36 @@ function App() {
         }
     };
 
-    const handleRegister = (name: string, email: string, password: string) => {
-        // Lógica de registro simple. En una app real, esto llamaría a una API.
-        setUser({ id: 'newUser', name, email });
-        setPage('home');
-    }
+    const handleRegister = async (name: string, email: string, password: string) => {
+        try {
+            const res = await fetch('http://127.0.0.1:8000/users/register/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    nombre: name,
+                    apellido_paterno: '', // Opcional, si tu backend lo requiere
+                    apellido_materno: '', // Opcional
+                    idusuario: email,
+                    password: password,
+                }),
+            });
+    
+            if (!res.ok) {
+                const errorData = await res.json().catch(() => ({ detail: 'Error desconocido' }));
+                throw new Error(errorData.detail || `Error de registro (${res.status})`);
+            }
+    
+            // Si el registro es exitoso, redirigir a la página de login
+            alert('¡Registro exitoso! Ahora puedes iniciar sesión.');
+            setPage('login');
+    
+        } catch (err: any) {
+            console.error(err);
+            alert(`No se pudo completar el registro: ${err.message}`);
+        }
+    };
 
     const handleLogout = async () => {
         try {
@@ -231,8 +257,7 @@ function App() {
                     />
                 );
             default:
-                // Podrías tener un componente NotFound aquí
-                return <div>Página no encontrada</div>;
+                return <NotFound onNavigateHome={() => handleNavigate('home')} />;
         }
     };
 
