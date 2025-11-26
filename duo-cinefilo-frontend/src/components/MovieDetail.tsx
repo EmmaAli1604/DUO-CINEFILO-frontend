@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ArrowLeft, Star, Play, MapPin, Info } from 'lucide-react';
 import type { Movie, Cinema } from '../App';
 import type { User } from '../App';
@@ -65,27 +65,262 @@ type MovieDetailProps = {
 };
 
 export function MovieDetail({ movie, user, onBack, onWatchTrailer }: MovieDetailProps) {
-  const [userRating, setUserRating] = useState(0);
-  const [comments, setComments] = useState<Comment[]>(MOCK_COMMENTS);
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [loadingComments, setLoadingComments] = useState(false);
+  const [hasToken, setHasToken] = useState<boolean | null>(null);
+  const [overallRating, setOverallRating] = useState<number>(Number(movie.rating) || 0);
 
   const [newComment, setNewComment] = useState("");
   const [rating, setRating] = useState(0);
 
-  const handleAddComment = () => {
-    if (!newComment.trim()) return;
-    if (rating === 0) return;
+  // Utilidad local para obtener cookies (mismo enfoque que en App.tsx)
+  const getCookie = (name: string) => {
+    return document.cookie
+      .split('; ')
+      .find(row => row.startsWith(name + '='))
+      ?.split('=')[1];
+  };
 
-    const newObj: Comment = {
-      id: crypto.randomUUID(),
-      user: "Usuario",
-      text: newComment,
-      rating: rating,
-      date: new Date().toLocaleDateString(),
-    };
+  // Cargar comentarios reales desde el backend si hay token
+  useEffect(() => {
+    const tokenCookie = getCookie('authToken');
+    if (!tokenCookie) {
+      setHasToken(false);
+      setComments([]);
+      // Sin token, mantener/fallback a calificación local de la película
+      setOverallRating(Number(movie.rating) || 0);
+      return;
+    }
 
-    setComments((prev) => [...prev, newObj]);
-    setNewComment("");
-    setRating(0);
+    setHasToken(true);
+    setLoadingComments(true);
+
+    // Decodificar por si viene con caracteres escapados
+    const authHeader = decodeURIComponent(tokenCookie);
+
+    // Intentamos obtener comentarios de la API
+    fetch('http://127.0.0.1:8000/comentario/get/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': authHeader, // Cookie ya guarda el prefijo "Bearer "
+      },
+      // Asumimos que el backend espera el id de la película en el body (nombre probable: idpelicula)
+      body: JSON.stringify({ idpelicula: movie.id }),
+    })
+      .then(async (res) => {
+        // Si no es ok, tratamos de leer el texto para facilitar depuración
+        if (!res.ok) {
+          const txt = await res.text().catch(() => '');
+          throw new Error(`Error ${res.status}: ${txt}`);
+        }
+        return res.json();
+      })
+      .then((data) => {
+        // Flexibilidad de mapeo según posibles nombres de campos
+        const list: any[] = Array.isArray(data)
+          ? data
+          : Array.isArray((data as any).results)
+            ? (data as any).results
+            : Array.isArray((data as any).comentarios)
+              ? (data as any).comentarios
+              : [];
+
+        // Formatea una cadena de fecha para que muestre SOLO la parte de fecha (YYYY-MM-DD) cuando venga con hora
+        const toDateOnly = (value: any): string => {
+          try {
+            const raw = String(value ?? '');
+            if (!raw) return '';
+            // 1) Coincidencia directa con formato ISO YYYY-MM-DD...
+            const isoMatch = raw.match(/^(\d{4}-\d{2}-\d{2})/);
+            if (isoMatch) return isoMatch[1];
+            // 2) Si hay un espacio, tomar la primera parte y validar YYYY-MM-DD
+            const first = raw.split(' ')[0];
+            if (/^\d{4}-\d{2}-\d{2}$/.test(first)) return first;
+            // 3) Si es parseable por Date, normalizar a YYYY-MM-DD
+            const d = new Date(raw);
+            if (!isNaN(d.getTime())) return d.toISOString().slice(0, 10);
+            // 4) Si ya es una fecha sin hora (p. ej. 25/11/2025), dejar como está
+            return raw;
+          } catch {
+            return String(value ?? '');
+          }
+        };
+
+        const mapped: Comment[] = list.map((item: any, idx: number) => {
+          // Construcción del nombre: preferir usuario__nombre + usuario__apellido__paterno
+          const nombre =
+            item?.["usuario__nombre"] ?? item?.nombre ?? item?.first_name ?? item?.usuario?.nombre;
+          const apellidoPaterno =
+            item?.["usuario__apellido__paterno"] ?? item?.apellido_paterno ?? item?.last_name ?? item?.usuario?.apellido_paterno;
+          const composedName =
+            (nombre || apellidoPaterno)
+              ? `${String(nombre || '').trim()} ${String(apellidoPaterno || '').trim()}`.trim()
+              : undefined;
+
+          return {
+            id: String(item.id || item._id || idx),
+            user: String(
+              composedName || item.user || item.usuario || item.username || 'Usuario'
+            ),
+            rating: Number(item.rating ?? item.calificacion ?? 0),
+            text: String(item.text || item.comentario || item.texto || ''),
+            date: toDateOnly(item.date ?? item.fecha ?? new Date().toISOString().slice(0, 10)),
+          };
+        });
+
+        setComments(mapped);
+
+        // Calcular/leer calificación general para mostrar junto a la estrella principal
+        const topCalif =
+          Number((data as any).calificacion ?? (data as any).rating ?? (data as any).promedio ?? NaN);
+        if (!Number.isNaN(topCalif) && topCalif > 0) {
+          setOverallRating(topCalif);
+        } else if (mapped.length > 0) {
+          const avg = mapped.reduce((acc, c) => acc + (Number(c.rating) || 0), 0) / mapped.length;
+          setOverallRating(Number.isFinite(avg) ? avg : (Number(movie.rating) || 0));
+        } else {
+          setOverallRating(Number(movie.rating) || 0);
+        }
+      })
+      .catch((err) => {
+        console.error('No se pudieron cargar los comentarios:', err);
+        setComments([]);
+        setOverallRating(Number(movie.rating) || 0);
+      })
+      .finally(() => setLoadingComments(false));
+  }, [movie.id]);
+
+  const handleAddComment = async () => {
+    try {
+      if (!newComment.trim()) return;
+      if (rating === 0) return;
+
+      // Obtener cookies necesarias
+      const tokenCookie = getCookie('authToken');
+      const usernameCookie = getCookie('username');
+
+      if (!tokenCookie || !usernameCookie) {
+        alert('Debes iniciar sesión para publicar un comentario');
+        return;
+      }
+
+      const authHeader = decodeURIComponent(tokenCookie);
+      const idusuario = decodeURIComponent(usernameCookie);
+
+      // Mapeo de estrellas (0..5) a calificación requerida (0,2,4,6,8,10)
+      const calificacion = Math.max(0, Math.min(5, rating)) * 2;
+
+      const payload: any = {
+        idpelicula: movie.id,
+        idusuario: idusuario,
+        calificacion,
+        comentario: newComment,
+        texto: newComment, // fallback por si el backend usa otra clave
+      };
+
+      const res = await fetch('http://127.0.0.1:8000/comentario/make/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': authHeader,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const txt = await res.text().catch(() => '');
+        throw new Error(`No se pudo publicar el comentario (${res.status}): ${txt}`);
+      }
+
+      // Intentar refrescar comentarios desde el backend para mantener consistencia
+      setLoadingComments(true);
+      await fetch('http://127.0.0.1:8000/comentario/get/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': authHeader,
+        },
+        body: JSON.stringify({ idpelicula: movie.id }),
+      })
+        .then(async (r) => {
+          if (!r.ok) {
+            const txt = await r.text().catch(() => '');
+            throw new Error(`Error ${r.status}: ${txt}`);
+          }
+          return r.json();
+        })
+        .then((data) => {
+          const list: any[] = Array.isArray(data)
+            ? data
+            : Array.isArray((data as any).results)
+              ? (data as any).results
+              : Array.isArray((data as any).comentarios)
+                ? (data as any).comentarios
+                : [];
+
+          const toDateOnly = (value: any): string => {
+            try {
+              const raw = String(value ?? '');
+              if (!raw) return '';
+              const isoMatch = raw.match(/^(\d{4}-\d{2}-\d{2})/);
+              if (isoMatch) return isoMatch[1];
+              const first = raw.split(' ')[0];
+              if (/^\d{4}-\d{2}-\d{2}$/.test(first)) return first;
+              const d = new Date(raw);
+              if (!isNaN(d.getTime())) return d.toISOString().slice(0, 10);
+              return raw;
+            } catch {
+              return String(value ?? '');
+            }
+          };
+
+          const mapped: Comment[] = list.map((item: any, idx: number) => {
+            const nombre =
+              item?.["usuario__nombre"] ?? item?.nombre ?? item?.first_name ?? item?.usuario?.nombre;
+            const apellidoPaterno =
+              item?.["usuario__apellido__paterno"] ?? item?.apellido_paterno ?? item?.last_name ?? item?.usuario?.apellido_paterno;
+            const composedName =
+              (nombre || apellidoPaterno)
+                ? `${String(nombre || '').trim()} ${String(apellidoPaterno || '').trim()}`.trim()
+                : undefined;
+
+            return {
+              id: String(item.id || item._id || idx),
+              user: String(
+                composedName || item.user || item.usuario || item.username || 'Usuario'
+              ),
+              rating: Number(item.rating ?? item.calificacion ?? 0),
+              text: String(item.text || item.comentario || item.texto || ''),
+              date: toDateOnly(item.date ?? item.fecha ?? new Date().toISOString().slice(0, 10)),
+            };
+          });
+
+          setComments(mapped);
+
+          const topCalif =
+            Number((data as any).calificacion ?? (data as any).rating ?? (data as any).promedio ?? NaN);
+          if (!Number.isNaN(topCalif) && topCalif > 0) {
+            setOverallRating(topCalif);
+          } else if (mapped.length > 0) {
+            const avg = mapped.reduce((acc, c) => acc + (Number(c.rating) || 0), 0) / mapped.length;
+            setOverallRating(Number.isFinite(avg) ? avg : (Number(movie.rating) || 0));
+          } else {
+            setOverallRating(Number(movie.rating) || 0);
+          }
+        })
+        .catch((e) => {
+          console.error('No se pudieron refrescar los comentarios tras publicar:', e);
+        })
+        .finally(() => setLoadingComments(false));
+
+      // Limpiar inputs después de publicar
+      setNewComment("");
+      setRating(0);
+    } catch (err: any) {
+      console.error(err);
+      alert(err?.message || 'Ocurrió un error al publicar el comentario');
+    }
   };
 
   return (
@@ -141,8 +376,8 @@ export function MovieDetail({ movie, user, onBack, onWatchTrailer }: MovieDetail
 
               <div className="flex items-center gap-2 mb-6">
                 <Star className="w-6 h-6 fill-yellow-500 text-yellow-500" />
-                <span className="text-foreground text-xl">{movie.rating}</span>
-                <span className="text-muted-foreground">/ 5</span>
+                <span className="text-foreground text-xl">{Number(overallRating).toFixed(1)}</span>
+                <span className="text-muted-foreground">/ 10</span>
               </div>
 
               <h2 className="text-foreground text-2xl mb-4">Sinopsis</h2>
@@ -160,34 +395,16 @@ export function MovieDetail({ movie, user, onBack, onWatchTrailer }: MovieDetail
               </Button>
             </div>
 
-            {/* User Rating */}
-            {user && (
-              <div className="bg-card border border-border rounded-lg p-6">
-                <h3 className="text-foreground text-xl mb-4">Tu Calificación</h3>
-
-                <div className="flex gap-2 mb-4">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <button
-                      key={star}
-                      onClick={() => setUserRating(star)}
-                      className="transition-transform hover:scale-110"
-                    >
-                      <Star
-                        className={`w-8 h-8 ${
-                          star <= userRating
-                            ? 'fill-yellow-500 text-yellow-500'
-                            : 'text-muted-foreground/30'
-                        }`}
-                      />
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
+            {/* Bloque "Tu Calificación" eliminado por redundancia con la calificación al publicar comentarios */}
 
             {/* COMMENTS SECTION */}
             <div>
               <h3 className="text-foreground text-2xl mb-6">Comentarios</h3>
+
+              {/* Si no hay token, mostrar mensaje y no renderizar listado */}
+              {hasToken === false && (
+                <div className="text-muted-foreground mb-6">para ver los mensajes, inicia sesion</div>
+              )}
 
               {/* Textarea + Rating */}
               <div className="mb-6 relative">
@@ -195,15 +412,16 @@ export function MovieDetail({ movie, user, onBack, onWatchTrailer }: MovieDetail
                   value={newComment}
                   onChange={(e) => setNewComment(e.target.value)}
                   placeholder="Escribe tu comentario..."
-                  className="w-full h-32 p-3 bg-card border border-border/50 rounded-lg text-foreground resize-none pr-20"
+                  disabled={hasToken === false}
+                  className={`w-full h-32 p-3 bg-card border border-border/50 rounded-lg text-foreground resize-none pr-20 ${hasToken === false ? 'opacity-60 cursor-not-allowed' : ''}`}
                 />
 
                 <div className="absolute bottom-2 right-3 flex gap-1">
                   {[1, 2, 3, 4, 5].map((value) => (
                     <Star
                       key={value}
-                      onClick={() => setRating(value)}
-                      className={`w-5 h-5 cursor-pointer transition ${
+                      onClick={() => hasToken !== false && setRating(value)}
+                      className={`w-5 h-5 ${hasToken === false ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'} transition ${
                         value <= rating
                           ? "fill-yellow-500 text-yellow-500"
                           : "text-muted-foreground"
@@ -215,36 +433,46 @@ export function MovieDetail({ movie, user, onBack, onWatchTrailer }: MovieDetail
 
               <Button
                 onClick={handleAddComment}
-                disabled={!newComment.trim() || rating === 0}
+                disabled={hasToken === false || !newComment.trim() || rating === 0}
                 className="bg-primary hover:bg-cinema-glow text-primary-foreground mb-5"
               >
                 Publicar Comentario
               </Button>
 
               {/* Comments List */}
-              <div className="space-y-4">
-                {comments.map((comment) => (
-                  <div
-                    key={comment.id}
-                    className="bg-card border border-border/50 rounded-lg p-6"
-                  >
-                    <div className="flex items-center justify-between mb-3">
-                      <span className="text-foreground">{comment.user}</span>
-                      <div className="flex items-center gap-1">
-                        <Star className="w-4 h-4 fill-yellow-500 text-yellow-500" />
-                        <span className="text-foreground">
-                          {comment.rating}
-                        </span>
-                      </div>
-                    </div>
+              {hasToken ? (
+                loadingComments ? (
+                  <div className="text-muted-foreground">Cargando comentarios...</div>
+                ) : (
+                  <div className="space-y-4">
+                    {comments.length === 0 ? (
+                      <div className="text-muted-foreground">No hay comentarios.</div>
+                    ) : (
+                      comments.map((comment) => (
+                        <div
+                          key={comment.id}
+                          className="bg-card border border-border/50 rounded-lg p-6"
+                        >
+                          <div className="flex items-center justify-between mb-3">
+                            <span className="text-foreground">{comment.user}</span>
+                            <div className="flex items-center gap-1">
+                              <Star className="w-4 h-4 fill-yellow-500 text-yellow-500" />
+                              <span className="text-foreground">
+                                {comment.rating}
+                              </span>
+                            </div>
+                          </div>
 
-                    <p className="text-foreground/80 mb-2">{comment.text}</p>
-                    <span className="text-muted-foreground text-sm">
-                      {comment.date}
-                    </span>
+                          <p className="text-foreground/80 mb-2">{comment.text}</p>
+                          <span className="text-muted-foreground text-sm">
+                            {comment.date}
+                          </span>
+                        </div>
+                      ))
+                    )}
                   </div>
-                ))}
-              </div>
+                )
+              ) : null}
             </div>
           </div>
 

@@ -15,7 +15,8 @@ export function Login({ onLogin, onNavigate }: LoginProps) {
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        // Llamar a onLogin aquí si usas el formulario
+        // Enviar credenciales al manejador provisto por App
+        onLogin(email.trim(), password);
     };
 
     return (

@@ -19,6 +19,8 @@ export type Movie = {
     rating: number;
     year: number;
     duration: string;
+    // ID del video en YouTube (apéndice), opcional
+    trailer?: string;
 };
 export type Cinema = {
     id: string;
@@ -33,8 +35,22 @@ function App() {
     const [user, setUser] = useState<User | null>(null);
     const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
 
-    // MOCK DATA
-    const MOCK_USER: User = { id: 'user1', name: 'Duo Cinefilo', email: 'user@example.com' };
+    // Utilidades simples para cookies de sesión
+    const setSessionCookie = (name: string, value: string) => {
+        // Cookie de sesión (sin expires) + atributos recomendados
+        document.cookie = `${name}=${encodeURIComponent(value)}; path=/; SameSite=Lax`;
+    };
+
+    const deleteCookie = (name: string) => {
+        document.cookie = `${name}=; Max-Age=0; path=/; SameSite=Lax`;
+    };
+
+    const getCookie = (name: string) => {
+        return document.cookie
+            .split('; ')
+            .find(row => row.startsWith(name + '='))
+            ?.split('=')[1];
+    };
 
     // Funciones de navegación
     const handleNavigate = (newPage: 'home' | 'login' | 'register') => {
@@ -43,13 +59,41 @@ function App() {
     };
 
     // Funciones de autenticación
-    const handleLogin = (email: string, password: string) => {
-        // Lógica de login simple. En una app real, esto llamaría a una API.
-        if (email === MOCK_USER.email && password === '123456') {
-            setUser(MOCK_USER);
+    const handleLogin = async (email: string, password: string) => {
+        try {
+            const res = await fetch('http://127.0.0.1:8000/users/login/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                // El backend espera el correo como "idusuario" y la contraseña como "password"
+                body: JSON.stringify({ idusuario: email, password }),
+            });
+
+            if (!res.ok) {
+                const text = await res.text();
+                throw new Error(`Error de login (${res.status}): ${text}`);
+            }
+
+            const data = await res.json();
+            // Flexibilidad con posibles nombres de campos
+            const token: string = data.token || data.access_token || data.bearer || '';
+            const username: string = data.username || data.user || data.name || '';
+
+            if (!token || !username) {
+                throw new Error('La respuesta del servidor no contiene token o username');
+            }
+
+            // Guardar en cookies de sesión
+            setSessionCookie('authToken', `Bearer ${token}`);
+            setSessionCookie('username', username);
+
+            // Actualizar estado de usuario en la app
+            setUser({ id: username, name: username, email });
             setPage('home');
-        } else {
-            alert('Credenciales incorrectas');
+        } catch (err: any) {
+            console.error(err);
+            alert('No se pudo iniciar sesión. Verifica tus credenciales.');
         }
     };
 
@@ -59,9 +103,46 @@ function App() {
         setPage('home');
     }
 
-    const handleLogout = () => {
-        setUser(null);
-        setPage('login');
+    const handleLogout = async () => {
+        try {
+            const usernameCookie = getCookie('username');
+            const tokenCookie = getCookie('authToken');
+
+            // Si faltan cookies, limpiamos y recargamos como fallback
+            if (!usernameCookie || !tokenCookie) {
+                deleteCookie('authToken');
+                deleteCookie('username');
+                setUser(null);
+                window.location.reload();
+                return;
+            }
+
+            const username = decodeURIComponent(usernameCookie);
+            const authToken = decodeURIComponent(tokenCookie);
+
+            const res = await fetch('http://127.0.0.1:8000/users/logout/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': authToken, // ya incluye el prefijo "Bearer " guardado en la cookie
+                },
+                body: JSON.stringify({ idusuario: username }),
+            });
+
+            if (res.status === 200) {
+                // Al recibir 200, borrar cookies y recargar la página
+                deleteCookie('authToken');
+                deleteCookie('username');
+                setUser(null);
+                window.location.reload();
+            } else {
+                const text = await res.text();
+                alert(`No se pudo cerrar sesión (${res.status}): ${text}`);
+            }
+        } catch (err) {
+            console.error('Error al cerrar sesión:', err);
+            alert('Ocurrió un error al cerrar sesión. Inténtalo nuevamente.');
+        }
     };
 
     // Funciones de película
@@ -77,11 +158,31 @@ function App() {
 
     // Función de compra de boletos (mock)
     const handleWatchTrailer = () => {
-        alert(`Ver trailer de ${selectedMovie?.title} `);
+        if (selectedMovie?.trailer) {
+            const url = `https://www.youtube.com/watch?v=${selectedMovie.trailer}`;
+            // Abrir en nueva pestaña de forma segura
+            const newWin = window.open(url, '_blank', 'noopener,noreferrer');
+            if (newWin) newWin.opener = null;
+        } else {
+            alert('Este título no tiene trailer disponible');
+        }
     };
 
     // Lógica para determinar si el Chatbot debe estar visible
     const isChatbotVisible = page !== 'login' && page !== 'register';
+
+    // Al montar la app, intentar restaurar sesión desde cookies
+    useEffect(() => {
+        const username = getCookie('username');
+        const token = getCookie('authToken');
+        // Restaurar solo si AMBAS cookies existen (token y usuario)
+        if (username && token) {
+            // Opcional: podríamos validar el token con el backend
+            setUser({ id: username, name: username, email: '' });
+            setPage('home');
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     // Renderizado condicional de la página
     const renderPage = () => {
