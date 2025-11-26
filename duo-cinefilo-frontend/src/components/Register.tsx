@@ -5,23 +5,65 @@ import { Label } from './ui/label';
 import logo from '../assets/logo.png';
 
 type RegisterProps = {
-    onRegister: (name: string, email: string, password: string) => void;
+    onRegister: (userData: any) => void;
     onNavigate: (page: 'home' | 'login') => void;
 };
 
 export function Register({ onRegister, onNavigate }: RegisterProps) {
-    const [name, setName] = useState('');
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const [confirmPassword, setConfirmPassword] = useState('');
+    const [formData, setFormData] = useState({
+        idusuario: '',
+        password: '',
+        confirmPassword: '',
+        nombre: '',
+        apellidopaterno: '',
+        apellidomaterno: '',
+        fechanacimiento: '',
+        genero: '',
+        email: ''
+    });
+    const [errors, setErrors] = useState<any>({});
+
+    const validate = () => {
+        const newErrors: any = {};
+        if (!formData.idusuario) newErrors.idusuario = 'El nombre de usuario es obligatorio.';
+        if (!formData.nombre) newErrors.nombre = 'El nombre es obligatorio.';
+        if (!formData.apellidopaterno) newErrors.apellidopaterno = 'El apellido paterno es obligatorio.';
+        if (!formData.email) {
+            newErrors.email = 'El correo electrónico es obligatorio.';
+        } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+            newErrors.email = 'El formato del correo electrónico no es válido.';
+        }
+        if (!formData.password) {
+            newErrors.password = 'La contraseña es obligatoria.';
+        } else if (formData.password.length < 8) {
+            newErrors.password = 'La contraseña debe tener al menos 8 caracteres.';
+        }
+        if (formData.password !== formData.confirmPassword) {
+            newErrors.confirmPassword = 'Las contraseñas no coinciden.';
+        }
+        if (!formData.fechanacimiento) {
+            newErrors.fechanacimiento = 'La fecha de nacimiento es obligatoria.';
+        } else if (new Date(formData.fechanacimiento) > new Date()) {
+            newErrors.fechanacimiento = 'La fecha de nacimiento no puede ser en el futuro.';
+        }
+        if (!formData.genero) newErrors.genero = 'El género es obligatorio.';
+
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
+    };
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (password !== confirmPassword) {
-            alert('Las contraseñas no coinciden');
-            return;
+        if (validate()) {
+            const { confirmPassword, ...userData } = formData;
+            console.log('Enviando al backend:', JSON.stringify(userData, null, 2));
+            onRegister(userData);
         }
-        onRegister(name, email, password);
+    };
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+        const { id, value } = e.target;
+        setFormData({ ...formData, [id]: value });
     };
 
     return (
@@ -56,65 +98,64 @@ export function Register({ onRegister, onNavigate }: RegisterProps) {
                         </button>
                     </div>
 
-                    <div className="space-y-6">
+                    <div className="space-y-4">
                         <div>
-                            <Label htmlFor="name" className="text-foreground mb-1 block">
-                                Nombre Completo
-                            </Label>
-                            <Input
-                                id="name"
-                                type="text"
-                                value={name}
-                                onChange={(e) => setName(e.target.value)}
-                                required
-                                className="bg-secondary border-border/50 text-foreground placeholder:text-muted-foreground focus-visible:ring-primary focus-visible:ring-offset-background"
-                                placeholder="Juan Pérez"
-                            />
+                            <Label htmlFor="idusuario">Nombre de Usuario</Label>
+                            <Input id="idusuario" value={formData.idusuario} onChange={handleChange} />
+                            {errors.idusuario && <p className="text-red-500 text-xs mt-1">{errors.idusuario}</p>}
                         </div>
-
-                        <div>
-                            <Label htmlFor="email" className="text-foreground mb-1 block">
-                                Correo Electrónico
-                            </Label>
-                            <Input
-                                id="email"
-                                type="email"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                required
-                                className="bg-secondary border-border/50 text-foreground placeholder:text-muted-foreground focus-visible:ring-primary focus-visible:ring-offset-background"
-                                placeholder="tu@email.com"
-                            />
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <Label htmlFor="nombre">Nombre</Label>
+                                <Input id="nombre" value={formData.nombre} onChange={handleChange} />
+                                {errors.nombre && <p className="text-red-500 text-xs mt-1">{errors.nombre}</p>}
+                            </div>
+                            <div>
+                                <Label htmlFor="apellidopaterno">Apellido Paterno</Label>
+                                <Input id="apellidopaterno" value={formData.apellidopaterno} onChange={handleChange} />
+                                {errors.apellidopaterno && <p className="text-red-500 text-xs mt-1">{errors.apellidopaterno}</p>}
+                            </div>
                         </div>
-
                         <div>
-                            <Label htmlFor="password" className="text-foreground mb-1 block">
-                                Contraseña
-                            </Label>
-                            <Input
-                                id="password"
-                                type="password"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                required
-                                className="bg-secondary border-border/50 text-foreground placeholder:text-muted-foreground focus-visible:ring-primary focus-visible:ring-offset-background"
-                                placeholder="••••••••"
-                            />
+                            <Label htmlFor="apellidomaterno">Apellido Materno</Label>
+                            <Input id="apellidomaterno" value={formData.apellidomaterno} onChange={handleChange} />
                         </div>
-
                         <div>
-                            <Label htmlFor="confirmPassword" className="text-foreground mb-1 block">
-                                Confirmar Contraseña
-                            </Label>
-                            <Input
-                                id="confirmPassword"
-                                type="password"
-                                value={confirmPassword}
-                                onChange={(e) => setConfirmPassword(e.target.value)}
-                                required
-                                className="bg-secondary border-border/50 text-foreground placeholder:text-muted-foreground focus-visible:ring-primary focus-visible:ring-offset-background"
-                                placeholder="••••••••"
-                            />
+                            <Label htmlFor="email">Correo Electrónico</Label>
+                            <Input id="email" type="email" value={formData.email} onChange={handleChange} />
+                            {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <Label htmlFor="fechanacimiento">Fecha de Nacimiento</Label>
+                                <Input id="fechanacimiento" type="date" value={formData.fechanacimiento} onChange={handleChange} />
+                                {errors.fechanacimiento && <p className="text-red-500 text-xs mt-1">{errors.fechanacimiento}</p>}
+                            </div>
+                            <div>
+                                <Label htmlFor="genero">Género</Label>
+                                <select
+                                    id="genero"
+                                    value={formData.genero}
+                                    onChange={handleChange}
+                                    className="w-full h-10 bg-secondary border border-border/50 rounded-md px-3 text-sm text-foreground focus:ring-2 focus:ring-primary focus:outline-none"
+                                >
+                                    <option value="" disabled>Selecciona tu género</option>
+                                    <option value="M">Masculino</option>
+                                    <option value="F">Femenino</option>
+                                    <option value="O">Otro</option>
+                                </select>
+                                {errors.genero && <p className="text-red-500 text-xs mt-1">{errors.genero}</p>}
+                            </div>
+                        </div>
+                        <div>
+                            <Label htmlFor="password">Contraseña</Label>
+                            <Input id="password" type="password" value={formData.password} onChange={handleChange} />
+                            {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password}</p>}
+                        </div>
+                        <div>
+                            <Label htmlFor="confirmPassword">Confirmar Contraseña</Label>
+                            <Input id="confirmPassword" type="password" value={formData.confirmPassword} onChange={handleChange} />
+                            {errors.confirmPassword && <p className="text-red-500 text-xs mt-1">{errors.confirmPassword}</p>}
                         </div>
                     </div>
 

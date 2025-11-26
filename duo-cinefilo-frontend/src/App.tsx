@@ -100,20 +100,14 @@ function App() {
         }
     };
 
-    const handleRegister = async (name: string, email: string, password: string) => {
+    const handleRegister = async (userData: any) => {
         try {
             const res = await fetch('http://127.0.0.1:8000/users/register/', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({
-                    nombre: name,
-                    apellido_paterno: '', // Opcional, si tu backend lo requiere
-                    apellido_materno: '', // Opcional
-                    idusuario: email,
-                    password: password,
-                }),
+                body: JSON.stringify(userData),
             });
     
             if (!res.ok) {
@@ -202,9 +196,6 @@ function App() {
         }
     };
 
-    // Lógica para determinar si el Chatbot debe estar visible
-    const isChatbotVisible = page !== 'login' && page !== 'register';
-
     // Al montar la app, intentar restaurar sesión desde cookies
     useEffect(() => {
         const username = getCookie('username');
@@ -213,9 +204,7 @@ function App() {
         if (username && token) {
             // Opcional: podríamos validar el token con el backend
             setUser({ id: username, name: username, email: '' });
-            setPage('home');
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     // Renderizado condicional de la página
@@ -267,7 +256,7 @@ function App() {
             {renderPage()}
 
             {/* EL CHATBOT FLOTANTE SE RENDERIZA AQUÍ, FUERA DEL RENDERIZADO DE PÁGINAS */}
-            {isChatbotVisible && <Chatbot />}
+            {user && <Chatbot />}
         </div>
     );
 }
