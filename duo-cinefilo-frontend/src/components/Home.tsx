@@ -113,10 +113,11 @@ type HomeProps = {
     onNavigate: (page: 'home' | 'login' | 'register') => void;
     onLogout: () => void;
     onStartSearch: (query: string) => void;
+    searchQuery: string;
+    onSearchChange: (query: string) => void;
 };
 
-export function Home({ user, onMovieSelect, onNavigate, onLogout, onStartSearch }: HomeProps) {
-    const [searchQuery, setSearchQuery] = useState('');
+export function Home({ user, onMovieSelect, onNavigate, onLogout, onStartSearch, searchQuery, onSearchChange }: HomeProps) {
     const [selectedGenre, setSelectedGenre] = useState('Todos');
     const [featuredMovie, setFeaturedMovie] = useState(MOCK_MOVIES[0]);
     const [scrolled, setScrolled] = useState(false);
@@ -410,17 +411,7 @@ export function Home({ user, onMovieSelect, onNavigate, onLogout, onStartSearch 
                                 type="text"
                                 placeholder="Buscar películas..."
                                 value={searchQuery}
-                                onChange={(e) => {
-                                    const v = e.target.value;
-                                    setSearchQuery(v);
-                                    if (!v.trim()) {
-                                        // Limpiar resultados cuando se borra la búsqueda
-                                        setSearchActive(false);
-                                        setSearchMovies(null);
-                                        setSearchError(null);
-                                        setLoadingSearch(false);
-                                    }
-                                }}
+                                onChange={(e) => onSearchChange(e.target.value)}
                                 onKeyDown={async (e) => {
                                     if (e.key !== 'Enter') return;
                                     const query = searchQuery.trim();

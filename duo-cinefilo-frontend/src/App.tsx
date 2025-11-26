@@ -219,6 +219,8 @@ function App() {
                         onNavigate={handleNavigate}
                         onLogout={handleLogout}
                         onStartSearch={handleStartSearch}
+                        searchQuery={currentSearchQuery}
+                        onSearchChange={setCurrentSearchQuery}
                     />
                 );
             case 'login':
@@ -237,7 +239,7 @@ function App() {
                     );
                 }
                 // Fallback si no hay película seleccionada
-                return <Home user={user} onMovieSelect={handleMovieSelect} onNavigate={handleNavigate} onLogout={handleLogout} onStartSearch={handleStartSearch} />;
+                return <Home user={user} onMovieSelect={handleMovieSelect} onNavigate={handleNavigate} onLogout={handleLogout} onStartSearch={handleStartSearch} searchQuery={currentSearchQuery} onSearchChange={setCurrentSearchQuery} />;
             case 'searchResults':
                 return (
                     <SearchResults
@@ -257,7 +259,7 @@ function App() {
             {renderPage()}
 
             {/* EL CHATBOT FLOTANTE SE RENDERIZA AQUÍ, FUERA DEL RENDERIZADO DE PÁGINAS */}
-            {user && <Chatbot />}
+            {user && <Chatbot onSearch={setCurrentSearchQuery} onStartSearch={handleStartSearch} />}
         </div>
     );
 }
