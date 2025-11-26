@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Home } from './components/Home';
+import { SearchResults } from './components/SearchResults';
 import { Login } from './components/Login';
 import { Register } from './components/Register';
 import { MovieDetail } from './components/MovieDetail';
 import Chatbot  from './components/Chatbot'; // <-- ¡IMPORTACIÓN CLAVE!
 
 // Definiciones de tipos (asumiendo que estaban en App.tsx)
-export type Page = 'home' | 'login' | 'register' | 'movieDetail';
+export type Page = 'home' | 'login' | 'register' | 'movieDetail' | 'searchResults';
 export type User = { id: string; name: string; email: string };
 export type Movie = {
     id: string;
@@ -34,6 +35,7 @@ function App() {
     const [page, setPage] = useState<Page>('home');
     const [user, setUser] = useState<User | null>(null);
     const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
+    const [currentSearchQuery, setCurrentSearchQuery] = useState<string>('');
 
     // Utilidades simples para cookies de sesión
     const setSessionCookie = (name: string, value: string) => {
@@ -156,6 +158,12 @@ function App() {
         setPage('home');
     };
 
+    // Iniciar búsqueda: guarda el query y navega a la vista de resultados
+    const handleStartSearch = (query: string) => {
+        setCurrentSearchQuery(query);
+        setPage('searchResults');
+    };
+
     // Función de compra de boletos (mock)
     const handleWatchTrailer = () => {
         if (selectedMovie?.trailer) {
@@ -194,6 +202,7 @@ function App() {
                         onMovieSelect={handleMovieSelect}
                         onNavigate={handleNavigate}
                         onLogout={handleLogout}
+                        onStartSearch={handleStartSearch}
                     />
                 );
             case 'login':
@@ -212,7 +221,15 @@ function App() {
                     );
                 }
                 // Fallback si no hay película seleccionada
-                return <Home user={user} onMovieSelect={handleMovieSelect} onNavigate={handleNavigate} onLogout={handleLogout} />;
+                return <Home user={user} onMovieSelect={handleMovieSelect} onNavigate={handleNavigate} onLogout={handleLogout} onStartSearch={handleStartSearch} />;
+            case 'searchResults':
+                return (
+                    <SearchResults
+                        query={currentSearchQuery}
+                        onBackHome={() => setPage('home')}
+                        onMovieSelect={handleMovieSelect}
+                    />
+                );
             default:
                 // Podrías tener un componente NotFound aquí
                 return <div>Página no encontrada</div>;

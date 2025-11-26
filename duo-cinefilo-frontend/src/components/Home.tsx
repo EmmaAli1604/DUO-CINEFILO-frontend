@@ -112,9 +112,10 @@ type HomeProps = {
     onMovieSelect: (movie: Movie) => void;
     onNavigate: (page: 'home' | 'login' | 'register') => void;
     onLogout: () => void;
+    onStartSearch: (query: string) => void;
 };
 
-export function Home({ user, onMovieSelect, onNavigate, onLogout }: HomeProps) {
+export function Home({ user, onMovieSelect, onNavigate, onLogout, onStartSearch }: HomeProps) {
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedGenre, setSelectedGenre] = useState('Todos');
     const [featuredMovie, setFeaturedMovie] = useState(MOCK_MOVIES[0]);
@@ -129,6 +130,12 @@ export function Home({ user, onMovieSelect, onNavigate, onLogout }: HomeProps) {
     const [loadingTagged, setLoadingTagged] = useState(false);
     const [taggedError, setTaggedError] = useState<string | null>(null);
     // Controles de scroll para la fila de etiquetas (descartados a petición del usuario)
+
+    // Búsqueda contra backend
+    const [searchMovies, setSearchMovies] = useState<Movie[] | null>(null);
+    const [loadingSearch, setLoadingSearch] = useState(false);
+    const [searchError, setSearchError] = useState<string | null>(null);
+    const [searchActive, setSearchActive] = useState(false);
 
     // Constantes para construir URLs desde la API
     const API_URL = 'http://127.0.0.1:8000/peliculas/all';
@@ -163,6 +170,14 @@ export function Home({ user, onMovieSelect, onNavigate, onLogout }: HomeProps) {
         duration: '—', // no provisto por la API
         trailer: m.trailer, // ID de YouTube opcional
     });
+
+    // Utilidad local para leer cookies (similar a App/MovieDetail)
+    const getCookie = (name: string) => {
+        return document.cookie
+            .split('; ')
+            .find(row => row.startsWith(name + '='))
+            ?.split('=')[1];
+    };
 
     // Cargar películas desde la API al montar
     useEffect(() => {
@@ -324,9 +339,32 @@ export function Home({ user, onMovieSelect, onNavigate, onLogout }: HomeProps) {
                                 type="text"
                                 placeholder="Buscar películas..."
                                 value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
+                                onChange={(e) => {
+                                    const v = e.target.value;
+                                    setSearchQuery(v);
+                                    if (!v.trim()) {
+                                        // Limpiar resultados cuando se borra la búsqueda
+                                        setSearchActive(false);
+                                        setSearchMovies(null);
+                                        setSearchError(null);
+                                        setLoadingSearch(false);
+                                    }
+                                }}
+                                onKeyDown={async (e) => {
+                                    if (e.key !== 'Enter') return;
+                                    const query = searchQuery.trim();
+                                    if (!query) {
+                                        setSearchActive(false);
+                                        setSearchMovies(null);
+                                        setSearchError(null);
+                                        return;
+                                    }
+                                    // Navegar a la vista de resultados dedicada
+                                    onStartSearch(query);
+                                }}
                                 className="bg-transparent text-foreground outline-none flex-1 placeholder:text-muted-foreground"
                             />
+                            {/* El botón 'Volver al inicio' ahora vive en el componente SearchResults */}
                         </div>
 
                         {/* Usuario */}
@@ -574,7 +612,7 @@ export function Home({ user, onMovieSelect, onNavigate, onLogout }: HomeProps) {
                             </div>
                         </div>
                     </>
-                ) : selectedGenre === 'Todos' ? (
+                ) : (selectedGenre === 'Todos' || searchActive) ? (
                     <>
                         {/* Top Rated con badge especial */}
                         <div className="space-y-4">
