@@ -23,8 +23,12 @@ export function Register({ onRegister, onNavigate }: RegisterProps) {
     });
     const [errors, setErrors] = useState<any>({});
 
+    const [acceptedPrivacy, setAcceptedPrivacy] = useState(false);
+    const [acceptedTerms, setAcceptedTerms] = useState(false);
+
     const validate = () => {
         const newErrors: any = {};
+
         if (!formData.idusuario) newErrors.idusuario = 'El nombre de usuario es obligatorio.';
         if (!formData.nombre) newErrors.nombre = 'El nombre es obligatorio.';
         if (!formData.apellidopaterno) newErrors.apellidopaterno = 'El apellido paterno es obligatorio.';
@@ -48,15 +52,18 @@ export function Register({ onRegister, onNavigate }: RegisterProps) {
         }
         if (!formData.genero) newErrors.genero = 'El género es obligatorio.';
 
+        if (!acceptedPrivacy) newErrors.acceptedPrivacy = 'Debes aceptar el aviso de privacidad.';
+        if (!acceptedTerms) newErrors.acceptedTerms = 'Debes aceptar los términos y condiciones.';
+
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+
         if (validate()) {
             const { confirmPassword, ...userData } = formData;
-            console.log('Enviando al backend:', JSON.stringify(userData, null, 2));
             onRegister(userData);
         }
     };
@@ -70,20 +77,20 @@ export function Register({ onRegister, onNavigate }: RegisterProps) {
         <div className="min-h-screen bg-background flex items-center justify-center p-4">
             <div className="w-full max-w-md">
 
-                {/* ENCABEZADO */}
+                {/* Header */}
                 <div className="text-center mb-8">
                     <div className="flex items-center justify-center gap-2 mb-4">
                         <img src={logo} alt="Logo" />
                     </div>
-                    <h1 className="text-2xl mb-2 font-semibold tracking-wider">DUO-CINEFILO</h1>
+                    <h1 className="text-2xl font-semibold tracking-wider">DUO-CINEFILO</h1>
 
-                    <h1 className="text-foreground text-3xl font-bold mb-2 break-words">Crear Cuenta</h1>
+                    <h1 className="text-foreground text-3xl font-bold mb-2">Crear Cuenta</h1>
                     <p className="text-muted-foreground text-sm">
                         Únete a la mejor experiencia de cine
                     </p>
                 </div>
 
-                {/* FORM */}
+                {/* Form */}
                 <form onSubmit={handleSubmit} className="bg-card border border-border/50 rounded-lg p-8 shadow-2xl">
 
                     {/* Tabs */}
@@ -91,7 +98,7 @@ export function Register({ onRegister, onNavigate }: RegisterProps) {
                         <button
                             type="button"
                             onClick={() => onNavigate('login')}
-                            className="pb-3 px-6 text-muted-foreground hover:text-foreground/80 transition-colors"
+                            className="pb-3 px-6 text-muted-foreground hover:text-foreground/80"
                         >
                             Iniciar Sesión
                         </button>
@@ -105,21 +112,21 @@ export function Register({ onRegister, onNavigate }: RegisterProps) {
 
                     <div className="space-y-4">
 
-                        {/* Nombre de usuario */}
+                        {/* Usuario */}
                         <div>
                             <Label htmlFor="idusuario" className="mb-2 block">Nombre de Usuario</Label>
                             <Input id="idusuario" value={formData.idusuario} onChange={handleChange} />
                             {errors.idusuario && <p className="text-red-500 text-xs mt-1">{errors.idusuario}</p>}
                         </div>
 
-                        {/* Nombre Completo en una fila */}
+                        {/* Nombre */}
                         <div>
                             <Label htmlFor="nombre" className="mb-2 block">Nombre Completo</Label>
                             <Input id="nombre" value={formData.nombre} onChange={handleChange} />
                             {errors.nombre && <p className="text-red-500 text-xs mt-1">{errors.nombre}</p>}
                         </div>
 
-                        {/* Apellidos: dos columnas */}
+                        {/* Apellidos */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <Label htmlFor="apellidopaterno" className="mb-2 block">Apellido Paterno</Label>
@@ -135,14 +142,14 @@ export function Register({ onRegister, onNavigate }: RegisterProps) {
                             </div>
                         </div>
 
-                        {/* EMAIL */}
+                        {/* Email */}
                         <div>
                             <Label htmlFor="email" className="mb-2 block">Correo Electrónico</Label>
                             <Input id="email" type="email" value={formData.email} onChange={handleChange} />
                             {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
                         </div>
 
-                        {/* Fecha & Género */}
+                        {/* Fecha y Género */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <Label htmlFor="fechanacimiento" className="mb-2 block">Fecha de Nacimiento</Label>
@@ -163,7 +170,7 @@ export function Register({ onRegister, onNavigate }: RegisterProps) {
                                     id="genero"
                                     value={formData.genero}
                                     onChange={handleChange}
-                                    className="w-full h-10 bg-secondary border border-border/50 rounded-md px-3 text-sm focus:ring-2 focus:ring-primary"
+                                    className="w-full h-10 bg-secondary border border-border/50 rounded-md px-3 text-sm focus:ring-primary"
                                 >
                                     <option value="" disabled>Selecciona tu género</option>
                                     <option value="M">Masculino</option>
@@ -174,13 +181,14 @@ export function Register({ onRegister, onNavigate }: RegisterProps) {
                             </div>
                         </div>
 
-                        {/* CONTRASEÑAS */}
+                        {/* Contraseña */}
                         <div>
                             <Label htmlFor="password" className="mb-2 block">Contraseña</Label>
                             <Input id="password" type="password" value={formData.password} onChange={handleChange} />
                             {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password}</p>}
                         </div>
 
+                        {/* Confirmar contraseña */}
                         <div>
                             <Label htmlFor="confirmPassword" className="mb-2 block">Confirmar Contraseña</Label>
                             <Input
@@ -191,6 +199,42 @@ export function Register({ onRegister, onNavigate }: RegisterProps) {
                             />
                             {errors.confirmPassword && (
                                 <p className="text-red-500 text-xs mt-1">{errors.confirmPassword}</p>
+                            )}
+                        </div>
+
+                        {/* CHECKBOXES DE PRIVACIDAD Y TERMINOS */}
+                        <div className="mt-4 space-y-3">
+
+                            {/* Aviso de privacidad */}
+                            <label className="flex items-start gap-3 text-sm">
+                                <input
+                                    type="checkbox"
+                                    checked={acceptedPrivacy}
+                                    onChange={(e) => setAcceptedPrivacy(e.target.checked)}
+                                    className="mt-1 h-4 w-4"
+                                />
+                                <span>
+                                    Acepto el <span className="underline">Aviso de Privacidad</span>.
+                                </span>
+                            </label>
+                            {errors.acceptedPrivacy && (
+                                <p className="text-red-500 text-xs">{errors.acceptedPrivacy}</p>
+                            )}
+
+                            {/* Términos y condiciones */}
+                            <label className="flex items-start gap-3 text-sm">
+                                <input
+                                    type="checkbox"
+                                    checked={acceptedTerms}
+                                    onChange={(e) => setAcceptedTerms(e.target.checked)}
+                                    className="mt-1 h-4 w-4"
+                                />
+                                <span>
+                                    Acepto los <span className="underline">Términos y Condiciones</span>.
+                                </span>
+                            </label>
+                            {errors.acceptedTerms && (
+                                <p className="text-red-500 text-xs">{errors.acceptedTerms}</p>
                             )}
                         </div>
                     </div>
