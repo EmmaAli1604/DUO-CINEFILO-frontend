@@ -402,11 +402,11 @@ export function Home({ user, onMovieSelect, onNavigate, onLogout }: HomeProps) {
                             </ul>
                         </div>
                         <div>
-                            <h3 className="text-foreground font-semibold mb-4">Ayuda</h3>
+                            <h3 className="text-foreground font-semibold mb-4">Sobre Nosotros</h3>
                             <ul className="space-y-2 text-muted-foreground text-sm">
-                                <li className="hover:text-foreground cursor-pointer transition-colors">FAQ</li>
-                                <li className="hover:text-foreground cursor-pointer transition-colors">Contacto</li>
-                                <li className="hover:text-foreground cursor-pointer transition-colors">Soporte</li>
+                                <li className="hover:text-foreground cursor-pointer transition-colors">¿Quiénes somos?</li>
+                                <li className="hover:text-foreground cursor-pointer transition-colors">Mision y Vision</li>
+                                <li className="hover:text-foreground cursor-pointer transition-colors">Valores</li>
                             </ul>
                         </div>
                         <div>
@@ -419,7 +419,7 @@ export function Home({ user, onMovieSelect, onNavigate, onLogout }: HomeProps) {
                         </div>
                     </div>
                     <div className="border-t border-border pt-8 text-center text-muted-foreground text-sm">
-                        <p>© 2024 CineMax. Todos los derechos reservados.</p>
+                        <p>© 2025 DUO-CINEFILO. Todos los derechos reservados.</p>
                     </div>
                 </div>
             </footer>

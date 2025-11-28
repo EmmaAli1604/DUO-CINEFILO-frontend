@@ -23,14 +23,13 @@ export function Login({ onLogin, onNavigate }: LoginProps) {
         <div className="min-h-screen bg-background flex items-center justify-center p-4">
             <div className="w-full max-w-md">
                 <div className="text-center mb-8">
-                    <div className="flex items-center justify-center gap-2 mb-4">
-                        <div className='flex items-center gap-2 text-foreground'>
-                            <img src={logo} alt="Logo" className="h-10 w-10" />
-                            <span className="text-2xl font-semibold tracking-wider">DUO-CINEFILO</span>
+                    <div className="text-center mb-8">
+                        <div className="flex items-center justify-center gap-2 mb-4">
+                            <img src={logo} alt="Logo" />
                         </div>
+                        <h1 className="text-2xl mb-2 font-semibold tracking-wider">DUO-CINEFILO</h1>
                     </div>
                     <h1 className="text-foreground text-3xl font-bold mb-2">Iniciar Sesión</h1>
-                    <p className="text-muted-foreground text-sm">Accede a tu cuenta para continuar</p>
                 </div>
 
                 {/* Contenedor del formulario con fondo de tarjeta (Card) */}
@@ -55,7 +54,7 @@ export function Login({ onLogin, onNavigate }: LoginProps) {
 
                     <div className="space-y-6">
                         <div>
-                            <Label htmlFor="email" className="text-foreground mb-1 block">
+                            <Label htmlFor="email" className="text-foreground mb-2 block">
                                 Correo Electrónico
                             </Label>
                             <Input
@@ -71,7 +70,7 @@ export function Login({ onLogin, onNavigate }: LoginProps) {
                         </div>
 
                         <div>
-                            <Label htmlFor="password" className="text-foreground mb-1 block">
+                            <Label htmlFor="password" className="text-foreground mb-2 block">
                                 Contraseña
                             </Label>
                             <Input
