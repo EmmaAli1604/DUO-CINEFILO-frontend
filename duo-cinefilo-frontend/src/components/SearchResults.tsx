@@ -40,14 +40,13 @@ export function SearchResults({ query, onBackHome, onMovieSelect }: SearchResult
   const [results, setResults] = useState<Movie[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
+  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
   const getCookie = (name: string) => {
     return document.cookie
       .split('; ')
       .find(row => row.startsWith(name + '='))
       ?.split('=')[1];
   };
-
   useEffect(() => {
     let cancelled = false;
     const run = async () => {
@@ -69,7 +68,7 @@ export function SearchResults({ query, onBackHome, onMovieSelect }: SearchResult
       try {
         setLoading(true);
         setError(null);
-        const res = await fetch('http://localhost:8000/peliculas/find/', {
+        const res = await fetch(`${apiBaseUrl}/peliculas/find/`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
