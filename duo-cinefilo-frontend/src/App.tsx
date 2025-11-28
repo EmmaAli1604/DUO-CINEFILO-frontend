@@ -7,196 +7,268 @@
 import { useState } from 'react';
 import type { ComponentType } from 'react';
 import { Home } from './components/Home';
+import { SearchResults } from './components/SearchResults';
 import { Login } from './components/Login';
 import { Register } from './components/Register';
 import { MovieDetail } from './components/MovieDetail';
-import { UserProfile } from './components/UserProfile';
 import Chatbot from './components/Chatbot';
-import { Workshops } from './components/Workshops';
-import { Festivals } from './components/Festivals';
+import NotFound from './components/NotFound';
 
-const ChatbotComponent = Chatbot as ComponentType<{ onBack?: () => void }>;
-
-// Tipos compartidos
-export type User = {
-  id: string;
-  name: string;
-  email: string;
-};
-
+// Definiciones de tipos (asumiendo que estaban en App.tsx)
+export type Page = 'home' | 'login' | 'register' | 'movieDetail' | 'searchResults';
+export type User = { id: string; name: string; email: string };
 export type Movie = {
-  id: string;
-  title: string;
-  director: string;
-  description: string;
-  genre: string;
-  imageUrl: string;
-  price: number;
-  rating: number;
-  year: number;
-  duration: string;
+    id: string;
+    title: string;
+    director: string;
+    description: string;
+    genre: string;
+    imageUrl: string;
+    price: number;
+    rating: number;
+    year: number;
+    duration: string;
+    // ID del video en YouTube (apéndice), opcional
+    trailer?: string;
 };
-
 export type Cinema = {
-  id: string;
-  name: string;
-  address: string;
-  distance: string;
+    id: string;
+    name: string;
+    address: string;
+    horarios: string[];
 };
 
-// Define el tipo de página explícitamente
-export type AppPage =
-  | 'home'
-  | 'login'
-  | 'register'
-  | 'movie'
-  // | 'seats'
-  | 'profile'
-  | 'workshops'
-  | 'festivals'
-  | 'chatbot';
 
-export default function App() {
+function App() {
+    const [page, setPage] = useState<Page>('home');
+    const [user, setUser] = useState<User | null>(null);
+    const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
+    const [currentSearchQuery, setCurrentSearchQuery] = useState<string>('');
+    const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
 
-  const [currentPage, setCurrentPage] = useState<AppPage>('home');
-    /**
-   * Estado principal del usuario autenticado.
-   *
-   * `user`: Contiene la información del usuario cuando está autenticado.
-   * `setUser`: Permite actualizar el usuario tras login o logout.
-   */
-  const [user, setUser] = useState<User | null>(null);
-  const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
-  const [selectedCinema, setSelectedCinema] = useState<Cinema | null>(null);
+    // Utilidades simples para cookies de sesión
+    const setSessionCookie = (name: string, value: string) => {
+        // Cookie de sesión (sin expires) + atributos recomendados
+        document.cookie = `${name}=${encodeURIComponent(value)}; path=/; SameSite=Lax`;
+    };
 
-  const navigateTo = (page: AppPage) => {
-    setCurrentPage(page);
-  };
-    /**
-   * Maneja el inicio de sesión del usuario.
-   *
-   * @param email Correo electrónico ingresado.
-   * @param password Contraseña ingresada (no validada en esta versión).
-   */
-  const handleLogin = (email: string, password: string) => {
-    setUser({ id: '1', name: 'Usuario', email });
-    navigateTo('home');
-  };
+    const deleteCookie = (name: string) => {
+        document.cookie = `${name}=; Max-Age=0; path=/; SameSite=Lax`;
+    };
 
-    /**
-   * Maneja el registro de un nuevo usuario.
-   *
-   * @param name Nombre capturado en el formulario.
-   * @param email Correo electrónico capturado.
-   * @param password Contraseña definida por el usuario.
-   */
-  const handleRegister = (name: string, email: string, password: string) => {
-    setUser({ id: '1', name, email });
-    navigateTo('home');
-  };
+    const getCookie = (name: string) => {
+        return document.cookie
+            .split('; ')
+            .find(row => row.startsWith(name + '='))
+            ?.split('=')[1];
+    };
 
-    /**
-   * Cierra la sesión del usuario y regresa a la pantalla de inicio.
-   */
-  const handleLogout = () => {
-    setUser(null);
-    navigateTo('home');
-  };
+    // Funciones de navegación
+    const handleNavigate = (newPage: 'home' | 'login' | 'register') => {
+        setPage(newPage);
+        setSelectedMovie(null);
+    };
 
-    /**
-   * Maneja la selección de una película desde la vista principal.
-   * Al seleccionar, cambia a la vista de detalle de película.
-   *
-   * @param movie Película seleccionada por el usuario.
-   */
-  const handleMovieSelect = (movie: Movie) => {
-    setSelectedMovie(movie);
-    navigateTo('movie');
-  };
+    // Funciones de autenticación
+    const handleLogin = async (email: string, password: string) => {
+        try {
+            const res = await fetch(`${apiBaseUrl}/users/login/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                // El backend espera el correo como "idusuario" y la contraseña como "password"
+                body: JSON.stringify({ idusuario: email, password }),
+            });
 
-    /**
-   * Maneja el flujo de compra de boletos en un cine.
-   * Si el usuario no está autenticado, lo redirige al login.
-   *
-   * @param cinema Cine seleccionado para la compra.
-   */
+            if (!res.ok) {
+                const text = await res.text();
+                throw new Error(`Error de login (${res.status}): ${text}`);
+            }
 
-  const handleBuyTickets = (cinema: Cinema) => {
-    if (!user) {
-      navigateTo('login');
-      return;
-    }
-    setSelectedCinema(cinema);
-    alert('Selección de asientos aún no implementada');
-  };
+            const data = await res.json();
+            // Flexibilidad con posibles nombres de campos
+            const token: string = data.token || data.access_token || data.bearer || '';
+            const username: string = data.username || data.user || data.name || '';
 
-    /**
-   * Maneja la compra digital de una película.
-   * Si el usuario no está autenticado, lo envía a login.
-   */
-  const handleBuyMovie = () => {
-    if (!user) {
-      navigateTo('login');
-      return;
-    }
-    alert('Película comprada exitosamente');
-  };
+            if (!token || !username) {
+                throw new Error('La respuesta del servidor no contiene token o username');
+            }
 
-  return (
-    <div className="min-h-screen bg-black">
-      {currentPage === 'home' && (
-        <Home
-          user={user}
-          onMovieSelect={handleMovieSelect}
-          onNavigate={navigateTo}
-          onLogout={handleLogout}
-        />
-      )}
-      {currentPage === 'login' && (
-        <Login
-          onLogin={handleLogin}
-          onNavigate={navigateTo}
-        />
-      )}
-      {currentPage === 'register' && (
-        <Register
-          onRegister={handleRegister}
-          onNavigate={navigateTo}
-        />
-      )}
-      {currentPage === 'movie' && selectedMovie && (
-        <MovieDetail
-          movie={selectedMovie}
-          user={user}
-          onBack={() => navigateTo('home')}
-          onBuyTickets={handleBuyTickets}
-          onBuyMovie={handleBuyMovie}
-        />
-      )}
-      {currentPage === 'profile' && user && (
-        <UserProfile
-          user={user}
-          onBack={() => navigateTo('home')}
-          onLogout={handleLogout}
-        />
-      )}
-      {currentPage === 'workshops' && (
-        <Workshops
-          user={user}
-          onBack={() => navigateTo('home')}
-        />
-      )}
-      {currentPage === 'festivals' && (
-        <Festivals
-          user={user}
-          onBack={() => navigateTo('home')}
-        />
-      )}
-      {currentPage === 'chatbot' && (
-        <ChatbotComponent
-          onBack={() => navigateTo('home')}
-        />
-      )}
-    </div>
-  );
+            // Guardar en cookies de sesión
+            setSessionCookie('authToken', `Bearer ${token}`);
+            setSessionCookie('username', username);
+
+            // Actualizar estado de usuario en la app
+            setUser({ id: username, name: username, email });
+            setPage('home');
+        } catch (err: any) {
+            console.error(err);
+            alert('No se pudo iniciar sesión. Verifica tus credenciales.');
+        }
+    };
+
+    const handleRegister = async (userData: any) => {
+        try {
+            const res = await fetch(`${apiBaseUrl}/users/register/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(userData),
+            });
+    
+            if (!res.ok) {
+                const errorData = await res.json().catch(() => ({ detail: 'Error desconocido' }));
+                throw new Error(errorData.detail || `Error de registro (${res.status})`);
+            }
+    
+            // Si el registro es exitoso, redirigir a la página de login
+            alert('¡Registro exitoso! Ahora puedes iniciar sesión.');
+            setPage('login');
+    
+        } catch (err: any) {
+            console.error(err);
+            alert(`No se pudo completar el registro: ${err.message}`);
+        }
+    };
+
+    const handleLogout = async () => {
+        try {
+            const usernameCookie = getCookie('username');
+            const tokenCookie = getCookie('authToken');
+
+            // Si faltan cookies, limpiamos y recargamos como fallback
+            if (!usernameCookie || !tokenCookie) {
+                deleteCookie('authToken');
+                deleteCookie('username');
+                setUser(null);
+                window.location.reload();
+                return;
+            }
+
+            const username = decodeURIComponent(usernameCookie);
+            const authToken = decodeURIComponent(tokenCookie);
+
+            const res = await fetch(`${apiBaseUrl}/users/logout/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': authToken, // ya incluye el prefijo "Bearer " guardado en la cookie
+                },
+                body: JSON.stringify({ idusuario: username }),
+            });
+
+            if (res.status === 200) {
+                // Al recibir 200, borrar cookies y recargar la página
+                deleteCookie('authToken');
+                deleteCookie('username');
+                setUser(null);
+                window.location.reload();
+            } else {
+                const text = await res.text();
+                alert(`No se pudo cerrar sesión (${res.status}): ${text}`);
+            }
+        } catch (err) {
+            console.error('Error al cerrar sesión:', err);
+            alert('Ocurrió un error al cerrar sesión. Inténtalo nuevamente.');
+        }
+    };
+
+    // Funciones de película
+    const handleMovieSelect = (movie: Movie) => {
+        setSelectedMovie(movie);
+        setPage('movieDetail');
+    };
+
+    const handleBack = () => {
+        setSelectedMovie(null);
+        setPage('home');
+    };
+
+    // Iniciar búsqueda: guarda el query y navega a la vista de resultados
+    const handleStartSearch = (query: string) => {
+        setCurrentSearchQuery(query);
+        setPage('searchResults');
+    };
+
+    // Función de compra de boletos (mock)
+    const handleWatchTrailer = () => {
+        if (selectedMovie?.trailer) {
+            const url = `https://www.youtube.com/watch?v=${selectedMovie.trailer}`;
+            // Abrir en nueva pestaña de forma segura
+            const newWin = window.open(url, '_blank', 'noopener,noreferrer');
+            if (newWin) newWin.opener = null;
+        } else {
+            alert('Este título no tiene trailer disponible');
+        }
+    };
+
+    // Al montar la app, intentar restaurar sesión desde cookies
+    useEffect(() => {
+        const username = getCookie('username');
+        const token = getCookie('authToken');
+        // Restaurar solo si AMBAS cookies existen (token y usuario)
+        if (username && token) {
+            // Opcional: podríamos validar el token con el backend
+            setUser({ id: username, name: username, email: '' });
+        }
+    }, []);
+
+    // Renderizado condicional de la página
+    const renderPage = () => {
+        switch (page) {
+            case 'home':
+                return (
+                    <Home
+                        user={user}
+                        onMovieSelect={handleMovieSelect}
+                        onNavigate={handleNavigate}
+                        onLogout={handleLogout}
+                        onStartSearch={handleStartSearch}
+                        searchQuery={currentSearchQuery}
+                        onSearchChange={setCurrentSearchQuery}
+                    />
+                );
+            case 'login':
+                return <Login onLogin={handleLogin} onNavigate={handleNavigate} />;
+            case 'register':
+                return <Register onNavigate={handleNavigate} onRegister={handleRegister}/>;
+            case 'movieDetail':
+                if (selectedMovie) {
+                    return (
+                        <MovieDetail
+                            movie={selectedMovie}
+                            user={user}
+                            onBack={handleBack}
+                            onWatchTrailer={handleWatchTrailer}
+                        />
+                    );
+                }
+                // Fallback si no hay película seleccionada
+                return <Home user={user} onMovieSelect={handleMovieSelect} onNavigate={handleNavigate} onLogout={handleLogout} onStartSearch={handleStartSearch} searchQuery={currentSearchQuery} onSearchChange={setCurrentSearchQuery} />;
+            case 'searchResults':
+                return (
+                    <SearchResults
+                        query={currentSearchQuery}
+                        onBackHome={() => setPage('home')}
+                        onMovieSelect={handleMovieSelect}
+                    />
+                );
+            default:
+                return <NotFound onNavigateHome={() => handleNavigate('home')} />;
+        }
+    };
+
+    return (
+        <div className="relative min-h-screen">
+            {/* Contenido de la página */}
+            {renderPage()}
+
+            {/* EL CHATBOT FLOTANTE SE RENDERIZA AQUÍ, FUERA DEL RENDERIZADO DE PÁGINAS */}
+            {user && <Chatbot onSearch={setCurrentSearchQuery} onStartSearch={handleStartSearch} />}
+        </div>
+    );
 }
+
+export default App;

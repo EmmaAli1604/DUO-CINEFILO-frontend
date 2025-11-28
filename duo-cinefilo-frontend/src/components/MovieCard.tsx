@@ -24,23 +24,27 @@ export function MovieCard({ movie, onClick }: MovieCardProps) {
   return (
     <button
       onClick={onClick}
-      className="group relative overflow-hidden rounded-lg bg-white/5 hover:bg-white/10 transition-all hover:scale-105"
+      className="group h-full w-full text-left rounded-lg bg-secondary/50 overflow-hidden transition-all duration-300 hover:bg-secondary hover:scale-105"
     >
-      <div className="aspect-2/3 overflow-hidden">
+      <div className="aspect-[2/3] overflow-hidden">
         <ImageWithFallback
           src={movie.imageUrl}
           alt={movie.title}
           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
         />
       </div>
-      <div className="p-4">
-        <h3 className="text-white mb-1 line-clamp-1">{movie.title}</h3>
-        <p className="text-white/60 text-sm mb-2">{movie.director}</p>
-        <div className="flex items-center justify-between">
-          <span className="text-white/50 text-sm">{movie.year}</span>
+      <div className="p-3 space-y-1">
+        <h3 className="text-foreground font-semibold truncate" title={movie.title}>
+          {movie.title}
+        </h3>
+        <p className="text-muted-foreground text-sm truncate" title={movie.director}>
+          {movie.director}
+        </p>
+        <div className="flex items-center justify-between pt-1">
+          <span className="text-muted-foreground text-xs">{movie.year}</span>
           <div className="flex items-center gap-1">
-            <Star className="w-4 h-4 fill-yellow-500 text-yellow-500" />
-            <span className="text-white text-sm">{movie.rating}</span>
+            <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+            <span className="text-foreground text-sm font-bold">{movie.rating}</span>
           </div>
         </div>
       </div>
