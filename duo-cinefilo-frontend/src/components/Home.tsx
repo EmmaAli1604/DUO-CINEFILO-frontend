@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { MovieCarousel } from './MovieCarousel';
 import type { Movie, User } from '../App';
-import { Search, User as UserIcon, LogOut, Play, Info, TrendingUp, Sparkles } from 'lucide-react';
+import { Search, User as UserIcon, LogOut, Play, Info, TrendingUp, Sparkles, ChevronLeft, ChevronRight } from 'lucide-react';
 import logo from '../assets/logo.png';
 
+// Datos mock originales (se mantienen como respaldo/fallback)
 const MOCK_MOVIES: Movie[] = [
     {
         id: '1',
@@ -103,29 +104,250 @@ const MOCK_MOVIES: Movie[] = [
     }
 ];
 
-const GENRES = ['Todos', 'Drama', 'Acción', 'Ciencia Ficción', 'Thriller', 'Romance', 'Musical'];
+// Las categorías (tags) se obtendrán dinámicamente desde el backend.
+// Mantenemos 'Todos' como la opción por defecto.
 
 type HomeProps = {
     user: User | null;
     onMovieSelect: (movie: Movie) => void;
     onNavigate: (page: 'home' | 'login' | 'register') => void;
     onLogout: () => void;
+    onStartSearch: (query: string) => void;
+    searchQuery: string;
+    onSearchChange: (query: string) => void;
 };
 
-export function Home({ user, onMovieSelect, onNavigate, onLogout }: HomeProps) {
-    const [searchQuery, setSearchQuery] = useState('');
+export function Home({ user, onMovieSelect, onNavigate, onLogout, onStartSearch, searchQuery, onSearchChange }: HomeProps) {
     const [selectedGenre, setSelectedGenre] = useState('Todos');
     const [featuredMovie, setFeaturedMovie] = useState(MOCK_MOVIES[0]);
     const [scrolled, setScrolled] = useState(false);
+    const [movies, setMovies] = useState<Movie[]>(MOCK_MOVIES);
+    // Tipo para etiquetas provenientes del backend
+    type Tag = { id: string | null; nombre: string };
+    const [categories, setCategories] = useState<Tag[]>([{ id: null, nombre: 'Todos' }]);
+    const [selectedTagId, setSelectedTagId] = useState<string | null>(null);
+    // Estado para resultados por etiqueta
+    const [taggedMovies, setTaggedMovies] = useState<Movie[] | null>(null);
+    const [loadingTagged, setLoadingTagged] = useState(false);
+    const [taggedError, setTaggedError] = useState<string | null>(null);
+    const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
+
+    // Búsqueda contra backend
+    const [searchMovies, setSearchMovies] = useState<Movie[] | null>(null);
+    const [loadingSearch, setLoadingSearch] = useState(false);
+    const [searchError, setSearchError] = useState<string | null>(null);
+    const [searchActive, setSearchActive] = useState(false);
+
+    // Constantes para construir URLs desde la API
+    const API_URL = `${apiBaseUrl}/peliculas/all`;
+    // Endpoint para obtener etiquetas desde el backend (se usa en el montaje)
+    const TAGS_URL = `${apiBaseUrl}/peliculas/tags`;
+    const TMDB_IMAGE_BASE = 'https://image.tmdb.org/t/p/w500';
+    const YT_WATCH_BASE = 'https://www.youtube.com/watch?v='; // por si luego lo usamos
+
+    type ApiMovie = {
+        id: number | string;
+        nombre: string;
+        director: string;
+        productora?: string;
+        año: number;
+        calificacion: number;
+        poster: string; // apéndice de TMDB
+        trailer?: string; // apéndice de YouTube
+        sinopsis: string;
+    };
+
+    // Adaptador de la API al tipo Movie de la app
+    const mapApiToMovie = (m: ApiMovie): Movie => ({
+        id: String(m.id),
+        title: m.nombre,
+        director: m.director,
+        description: m.sinopsis,
+        genre: 'General', // la API no provee género
+        imageUrl: m.poster ? `${TMDB_IMAGE_BASE}${m.poster}` : 'https://via.placeholder.com/500x750?text=No+Image',
+        price: 0, // no provisto por la API
+        rating: m.calificacion ?? 0,
+        year: Number(m.año) || 0,
+        duration: '—', // no provisto por la API
+        trailer: m.trailer, // ID de YouTube opcional
+    });
+
+    // Utilidad local para leer cookies (similar a App/MovieDetail)
+    const getCookie = (name: string) => {
+        return document.cookie
+            .split('; ')
+            .find(row => row.startsWith(name + '='))
+            ?.split('=')[1];
+    };
+
+    // Cargar películas desde la API al montar
+    useEffect(() => {
+        let cancelled = false;
+        const load = async () => {
+            try {
+                const res = await fetch(API_URL);
+                if (!res.ok) throw new Error(`Error ${res.status}`);
+                const data = await res.json();
+                // Soporta tanto array como objeto único
+                const list: ApiMovie[] = Array.isArray(data) ? data : [data];
+                const mapped = list.map(mapApiToMovie);
+                if (!cancelled && mapped.length > 0) {
+                    setMovies(mapped);
+                    setFeaturedMovie(mapped[0]);
+                }
+            } catch (e) {
+                console.error('No se pudieron cargar las películas desde la API, usando datos locales.', e);
+            }
+        };
+        load();
+        return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    // Cargar categorías (tags) desde el backend al montar
+    useEffect(() => {
+        let cancelled = false;
+        const loadTags = async () => {
+            try {
+                const res = await fetch(TAGS_URL, { method: 'GET' });
+                if (!res.ok) throw new Error(`Error ${res.status}`);
+                const data = await res.json();
+                // El backend actual responde un objeto con la forma:
+                // { total: number, etiquetas: [{ id_etiqueta, nombre }, ...] }
+                // Ajustamos el parser para priorizar ese formato y mantener compatibilidad con otros.
+
+                const etiquetas = Array.isArray((data as any)?.etiquetas)
+                    ? (data as any).etiquetas
+                    : (Array.isArray(data) ? data : []);
+
+                const parsed: Tag[] = etiquetas
+                    .map((item: any) => {
+                        if (typeof item === 'string') {
+                            const nombre = item.trim();
+                            if (!nombre) return null;
+                            return { id: null, nombre } as Tag;
+                        }
+                        if (!item) return null;
+                        const nombre: string = String(
+                            item.nombre ?? item.name ?? item.tag ?? item.titulo ?? ''
+                        ).trim();
+                        if (!nombre) return null;
+                        // Priorizar id_etiqueta; mantener compatibilidad con claves previas
+                        const idRaw = item.id_etiqueta ?? item.idetiqueta ?? item.id ?? item.pk ?? null;
+                        const id = idRaw != null ? String(idRaw) : null;
+                        return { id, nombre } as Tag;
+                    })
+                    .filter((t: Tag | null): t is Tag => !!t);
+                console.log(parsed);
+                // No eliminar duplicados: el backend garantiza que no vienen repetidos
+                if (!cancelled) {
+                    const all: Tag[] = [{ id: null, nombre: 'Todos' }, ...parsed];
+                    setCategories(all);
+                    // Asegurar consistencia del seleccionado
+                    if (!all.some(t => t.nombre === selectedGenre)) {
+                        setSelectedGenre('Todos');
+                        setSelectedTagId(null);
+                    }
+                }
+            } catch (e) {
+                console.error('No se pudieron cargar las categorías desde el backend, usando lista por defecto.', e);
+                if (!cancelled) {
+                    // Dejar únicamente 'Todos' como fallback sin romper la UI
+                    setCategories([{ id: null, nombre: 'Todos' }]);
+                    setSelectedTagId(null);
+                }
+            }
+        };
+        loadTags();
+        return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    // =========================
+    // Secciones dinámicas por 2 etiquetas aleatorias
+    // =========================
+    type RandomSection = {
+        id: string;
+        nombre: string;
+        movies: Movie[];
+        loading: boolean;
+        error: string | null;
+    };
+    const [randomSections, setRandomSections] = useState<RandomSection[]>([]);
+
+    const fetchMoviesByTag = async (idTag: string | number): Promise<Movie[]> => {
+        try {
+            const idValue = ((): number | string => {
+                const n = Number(idTag);
+                return Number.isFinite(n) ? n : String(idTag);
+            })();
+            const res = await fetch(`${apiBaseUrl}/peliculas/tag/`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ idetiqueta: idValue }),
+            });
+            if (!res.ok) {
+                console.error('Fallo al cargar películas por etiqueta aleatoria:', res.status);
+                return [];
+            }
+            const data = await res.json().catch(() => null);
+            const items: any[] = Array.isArray(data)
+                ? data
+                : Array.isArray((data as any)?.results)
+                    ? (data as any).results
+                    : Array.isArray((data as any)?.peliculas)
+                        ? (data as any).peliculas
+                        : Array.isArray((data as any)?.movies)
+                            ? (data as any).movies
+                            : [];
+            return items.map(mapApiToMovie);
+        } catch (e) {
+            console.error('Error inesperado al cargar películas por etiqueta aleatoria:', e);
+            return [];
+        }
+    };
+
+    // Cuando se cargan las categorías, elegir 2 aleatorias (distintas) y cargar sus películas
+    useEffect(() => {
+        const pool = categories.filter((t) => t.id != null);
+        if (pool.length === 0) {
+            setRandomSections([]);
+            return;
+        }
+        // Elegir hasta 2 distintas
+        const shuffled = [...pool].sort(() => Math.random() - 0.5);
+        const picked = shuffled.slice(0, Math.min(2, shuffled.length));
+
+        const initial: RandomSection[] = picked.map((t) => ({
+            id: String(t.id!),
+            nombre: t.nombre,
+            movies: [],
+            loading: true,
+            error: null,
+        }));
+        setRandomSections(initial);
+
+        // Cargar películas para cada una
+        picked.forEach(async (t) => {
+            const movies = await fetchMoviesByTag(t.id!);
+            setRandomSections((prev) => prev.map((sec) =>
+                sec.id === String(t.id!)
+                    ? { ...sec, movies, loading: false, error: movies.length === 0 ? 'Sin resultados' : null }
+                    : sec
+            ));
+        });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [categories]);
 
     // Cambiar película destacada cada 8 segundos
     useEffect(() => {
         const interval = setInterval(() => {
-            const randomIndex = Math.floor(Math.random() * MOCK_MOVIES.length);
-            setFeaturedMovie(MOCK_MOVIES[randomIndex]);
+            const pool = movies.length > 0 ? movies : MOCK_MOVIES;
+            const randomIndex = Math.floor(Math.random() * pool.length);
+            setFeaturedMovie(pool[randomIndex]);
         }, 8000);
         return () => clearInterval(interval);
-    }, []);
+    }, [movies]);
 
     // Detectar scroll para cambiar el header
     useEffect(() => {
@@ -136,16 +358,27 @@ export function Home({ user, onMovieSelect, onNavigate, onLogout }: HomeProps) {
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
-    const filteredMovies = MOCK_MOVIES.filter((movie) => {
+    const filteredMovies = (movies || []).filter((movie) => {
         const matchesSearch = movie.title.toLowerCase().includes(searchQuery.toLowerCase());
         const matchesGenre = selectedGenre === 'Todos' || movie.genre === selectedGenre;
         return matchesSearch && matchesGenre;
     });
 
-    const dramaMovies = MOCK_MOVIES.filter(m => m.genre === 'Drama');
-    const sciFiMovies = MOCK_MOVIES.filter(m => m.genre === 'Ciencia Ficción');
-    const actionMovies = MOCK_MOVIES.filter(m => m.genre === 'Acción');
-    const topRatedMovies = [...MOCK_MOVIES].sort((a, b) => b.rating - a.rating).slice(0, 6);
+    const topRatedMovies = [...movies].sort((a, b) => b.rating - a.rating).slice(0, 6);
+
+    // Abrir trailer en nueva pestaña si existe; si no, notificar
+    const openTrailer = (movie: Movie) => {
+        const raw = (movie.trailer || '').trim();
+        if (!raw) {
+            alert('no se encontro el link al trailer');
+            return;
+        }
+        // Si ya es una URL completa, úsala; si parece ser un ID de YouTube, construir la URL
+        const isUrl = /^https?:\/\//i.test(raw);
+        const url = isUrl ? raw : `https://www.youtube.com/watch?v=${encodeURIComponent(raw)}`;
+        const win = window.open(url, '_blank', 'noopener,noreferrer');
+        if (win) win.opener = null;
+    };
 
     return (
         // Usa bg-background para asegurar el color negro/burdeos
@@ -178,18 +411,31 @@ export function Home({ user, onMovieSelect, onNavigate, onLogout }: HomeProps) {
                                 type="text"
                                 placeholder="Buscar películas..."
                                 value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
+                                onChange={(e) => onSearchChange(e.target.value)}
+                                onKeyDown={async (e) => {
+                                    if (e.key !== 'Enter') return;
+                                    const query = searchQuery.trim();
+                                    if (!query) {
+                                        setSearchActive(false);
+                                        setSearchMovies(null);
+                                        setSearchError(null);
+                                        return;
+                                    }
+                                    // Navegar a la vista de resultados dedicada
+                                    onStartSearch(query);
+                                }}
                                 className="bg-transparent text-foreground outline-none flex-1 placeholder:text-muted-foreground"
                             />
+                            {/* El botón 'Volver al inicio' ahora vive en el componente SearchResults */}
                         </div>
 
                         {/* Usuario */}
                         <div className="flex items-center gap-3">
                             {user ? (
                                 <>
-                                    <div className="hidden lg:flex items-center gap-2 px-4 py-2 rounded-full bg-secondary/50 hover:bg-secondary transition-colors cursor-pointer">
+                                    <div className="hidden lg:flex items-center gap-2 px-4 py-2 rounded-full bg-secondary/50 hover:bg-secondary transition-colors">
                                         <UserIcon className="w-5 h-5 text-foreground" />
-                                        <span className="text-foreground font-medium">{user.name}</span>
+                                        <span className="text-foreground font-medium">hola, {user.name}</span>
                                     </div>
                                     {/* Botón Salir usando primary/cinema-rose */}
                                     <button
@@ -253,7 +499,7 @@ export function Home({ user, onMovieSelect, onNavigate, onLogout }: HomeProps) {
                             </div>
 
                             {/* Título - Usa text-foreground (cinema-cream) */}
-                            <h1 className="text-5xl md:text-7xl font-bold text-foreground leading-tight animate-slide-up">
+                            <h1 className="text-5xl md:text-7xl font-bold text-foreground leading-tight animate-slide-up-fade break-words">
                                 {featuredMovie.title}
                             </h1>
 
@@ -279,7 +525,7 @@ export function Home({ user, onMovieSelect, onNavigate, onLogout }: HomeProps) {
                             <div className="flex flex-wrap gap-4 pt-4">
                                 {/* Botón Reproducir usando primary (cinema-rose) y glow shadow */}
                                 <button
-                                    onClick={() => onMovieSelect(featuredMovie)}
+                                    onClick={() => openTrailer(featuredMovie)}
                                     className="flex items-center gap-3 bg-primary hover:bg-cinema-glow text-primary-foreground px-8 py-4 rounded-full font-bold text-lg transition-all shadow-xl hover:scale-105"
                                     style={{ boxShadow: 'var(--shadow-glow)' }}
                                 >
@@ -307,32 +553,123 @@ export function Home({ user, onMovieSelect, onNavigate, onLogout }: HomeProps) {
                 </div>
             </div>
 
-            {/* FILTROS DE GÉNERO */}
+            {/* FILTROS DE GÉNERO / ETIQUETAS */}
             <div className="sticky top-16 md:top-20 z-40 bg-gradient-to-b from-background via-background to-transparent py-6 backdrop-blur-sm">
                 <div className="container mx-auto px-4 lg:px-8">
-                    <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-                        {GENRES.map((genre) => (
+                    <div className="flex flex-wrap justify-center gap-3">
+                        {categories.map((tag) => (
                             <button
-                                key={genre}
-                                onClick={() => setSelectedGenre(genre)}
-                                className={`px-6 py-2.5 rounded-full whitespace-nowrap font-medium transition-all ${
-                                    selectedGenre === genre
+                                key={tag.id ?? tag.nombre}
+                                onClick={async () => {
+                                    setSelectedGenre(tag.nombre);
+                                    setSelectedTagId(tag.id);
+                                    // Si es "Todos", no llamamos al endpoint
+                                    if (tag.id === null || tag.id === undefined) {
+                                        // Limpiar resultados por etiqueta
+                                        setTaggedMovies(null);
+                                        setTaggedError(null);
+                                        setLoadingTagged(false);
+                                        return;
+                                    }
+
+                                    try {
+                                        // Corrección solicitada: usar POST a /peliculas/tag/ con JSON { idetiqueta }
+                                        // No enviar headers de autenticación.
+                                        setLoadingTagged(true);
+                                        setTaggedError(null);
+                                        const idValue = ((): number | string => {
+                                            const n = Number(tag.id);
+                                            return Number.isFinite(n) ? n : String(tag.id);
+                                        })();
+                                        const res = await fetch(`${apiBaseUrl}/peliculas/tag/`, {
+                                            method: 'POST',
+                                            headers: {
+                                                'Content-Type': 'application/json',
+                                            },
+                                            body: JSON.stringify({ idetiqueta: idValue }),
+                                        });
+                                        if (!res.ok) {
+                                            const txt = await res.text().catch(() => '');
+                                            console.error(`Error al solicitar por etiqueta (${res.status}):`, txt);
+                                            setTaggedError(`No se pudieron cargar las películas de la etiqueta (${res.status})`);
+                                            setTaggedMovies([]);
+                                        } else {
+                                            const data = await res.json().catch(() => null);
+                                            console.log('Respuesta backend /peliculas/tag/:', data);
+                                            // El backend podría devolver un arreglo directo o un objeto con una propiedad lista
+                                            const items: any[] = Array.isArray(data)
+                                                ? data
+                                                : Array.isArray((data as any)?.results)
+                                                    ? (data as any).results
+                                                    : Array.isArray((data as any)?.peliculas)
+                                                        ? (data as any).peliculas
+                                                        : Array.isArray((data as any)?.movies)
+                                                            ? (data as any).movies
+                                                            : [];
+                                            const mapped = items.map(mapApiToMovie);
+                                            setTaggedMovies(mapped);
+                                        }
+                                    } catch (e) {
+                                        console.error('Fallo la petición de etiquetas (POST /peliculas/tag/):', e);
+                                        setTaggedError('Ocurrió un error al cargar las películas de la etiqueta');
+                                        setTaggedMovies([]);
+                                    } finally {
+                                        setLoadingTagged(false);
+                                    }
+                                }}
+                                className={`px-6 py-2.5 rounded-full font-medium transition-all ${
+                                    selectedGenre === tag.nombre
                                         // Botón activo: usa primary (cinema-rose) y glow shadow
                                         ? 'bg-primary text-primary-foreground shadow-lg shadow-cinema-rose/30 scale-105'
                                         // Botón inactivo: usa secondary (dark burgundy) y border
                                         : 'bg-secondary/50 text-muted-foreground hover:bg-secondary hover:text-foreground border border-border'
                                 }`}
                             >
-                                {genre}
+                                {tag.nombre}
                             </button>
                         ))}
                     </div>
                 </div>
             </div>
-
             {/* CARRUSELES DE PELÍCULAS */}
             <div className="space-y-12 py-8 pb-20">
-                {selectedGenre === 'Todos' ? (
+                {selectedTagId ? (
+                    <>
+                        <div className="space-y-4">
+                            <div className="container mx-auto px-4 lg:px-8">
+                                <div className="flex items-center gap-3">
+                                    <TrendingUp className="w-6 h-6 text-cinema-rose" />
+                                    <h2 className="text-foreground text-2xl font-semibold">
+                                        {selectedGenre}
+                                    </h2>
+                                </div>
+                            </div>
+                            <div className="container mx-auto px-0 md:px-8">
+                                {loadingTagged ? (
+                                    <div className="text-muted-foreground px-4">Cargando películas...</div>
+                                ) : taggedError ? (
+                                    <div className="text-cinema-rose px-4">{taggedError}</div>
+                                ) : (
+                                    (() => {
+                                        const list = (taggedMovies || []).filter((m) =>
+                                            m.title.toLowerCase().includes(searchQuery.toLowerCase())
+                                        );
+                                        if (list.length === 0) {
+                                            return <div className="text-muted-foreground px-4">No hay películas para esta etiqueta.</div>;
+                                        }
+                                        return (
+                                            <MovieCarousel
+                                                movies={list}
+                                                title={''}
+                                                onMovieSelect={onMovieSelect}
+                                            />
+                                        );
+                                    })()
+                                )}
+                            </div>
+                        </div>
+                    </>
+                ) : (selectedGenre === 'Todos' || searchActive) ? (
                     <>
                         {/* Top Rated con badge especial */}
                         <div className="space-y-4">
@@ -350,29 +687,42 @@ export function Home({ user, onMovieSelect, onNavigate, onLogout }: HomeProps) {
                             />
                         </div>
 
-                        <MovieCarousel
-                            movies={MOCK_MOVIES}
-                            title="Populares"
-                            onMovieSelect={onMovieSelect}
-                        />
+                        <div className="space-y-4">
+                            <div className="container mx-auto px-4 lg:px-8">
+                                <div className="flex items-center gap-3">
+                                    <Sparkles className="w-6 h-6 text-cinema-rose" />
+                                    <h2 className="text-foreground text-2xl md:text-3xl font-bold">Populares</h2>
+                                </div>
+                            </div>
+                            <MovieCarousel
+                                movies={movies}
+                                title=""
+                                onMovieSelect={onMovieSelect}
+                            />
+                        </div>
 
-                        <MovieCarousel
-                            movies={actionMovies}
-                            title="Acción y Aventura"
-                            onMovieSelect={onMovieSelect}
-                        />
-
-                        <MovieCarousel
-                            movies={dramaMovies}
-                            title="Dramas Aclamados"
-                            onMovieSelect={onMovieSelect}
-                        />
-
-                        <MovieCarousel
-                            movies={sciFiMovies}
-                            title="Ciencia Ficción"
-                            onMovieSelect={onMovieSelect}
-                        />
+                        {/* Secciones dinámicas por etiquetas aleatorias */}
+                        {randomSections.map((sec) => (
+                            <div key={sec.id} className="space-y-4">
+                                <div className="container mx-auto px-4 lg:px-8">
+                                    <div className="flex items-center gap-3">
+                                        <Sparkles className="w-6 h-6 text-cinema-rose" />
+                                        <h2 className="text-foreground text-2xl md:text-3xl font-bold">{sec.nombre}</h2>
+                                    </div>
+                                </div>
+                                {sec.loading ? (
+                                    <div className="text-muted-foreground px-4">Cargando películas...</div>
+                                ) : sec.error ? (
+                                    <div className="text-cinema-rose px-4">{sec.error}</div>
+                                ) : (
+                                    <MovieCarousel
+                                        movies={sec.movies.filter((m) => m.title.toLowerCase().includes(searchQuery.toLowerCase()))}
+                                        title=""
+                                        onMovieSelect={onMovieSelect}
+                                    />
+                                )}
+                            </div>
+                        ))}
                     </>
                 ) : (
                     <MovieCarousel

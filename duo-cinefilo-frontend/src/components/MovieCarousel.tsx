@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { MovieCard } from './MovieCard';
 import type { Movie } from '../App';
@@ -17,73 +17,77 @@ export function MovieCarousel({ movies, title, onMovieSelect }: MovieCarouselPro
   const checkScroll = () => {
     if (scrollContainerRef.current) {
       const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
-      setCanScrollLeft(scrollLeft > 0);
-      setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 10);
+      setCanScrollLeft(scrollLeft > 5);
+      setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 5);
     }
   };
 
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (container) {
+      checkScroll();
+      container.addEventListener('scroll', checkScroll, { passive: true });
+      window.addEventListener('resize', checkScroll);
+
+      return () => {
+        container.removeEventListener('scroll', checkScroll);
+        window.removeEventListener('resize', checkScroll);
+      };
+    }
+  }, [movies]);
+
   const scroll = (direction: 'left' | 'right') => {
     if (scrollContainerRef.current) {
-      const scrollAmount = scrollContainerRef.current.clientWidth * 0.8;
-      const newScrollLeft = direction === 'left' 
-        ? scrollContainerRef.current.scrollLeft - scrollAmount
-        : scrollContainerRef.current.scrollLeft + scrollAmount;
-      
-      scrollContainerRef.current.scrollTo({
-        left: newScrollLeft,
+      const scrollAmount = scrollContainerRef.current.clientWidth;
+      scrollContainerRef.current.scrollBy({
+        left: direction === 'left' ? -scrollAmount : scrollAmount,
         behavior: 'smooth'
       });
-
-      setTimeout(checkScroll, 300);
     }
   };
 
   return (
     <div className="relative group">
-      <h2 className="text-white text-2xl mb-4 px-4 md:px-8">{title}</h2>
+      {title && <h2 className="text-foreground text-2xl md:text-3xl font-bold mb-4 px-4 md:px-8">{title}</h2>}
       
-      {/* Botón izquierdo */}
       {canScrollLeft && (
         <button
           onClick={() => scroll('left')}
-          className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-black/80 hover:bg-black text-white p-2 rounded-r-lg opacity-0 group-hover:opacity-100 transition-opacity"
+          className="absolute left-2 top-1/2 -translate-y-1/2 z-20 bg-background/70 backdrop-blur-sm text-foreground rounded-full w-12 h-12 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:bg-primary hover:text-primary-foreground focus:outline-none focus:ring-2 focus:ring-primary"
           aria-label="Scroll left"
         >
-          <ChevronLeft className="w-8 h-8" />
+          <ChevronLeft className="w-6 h-6" />
         </button>
       )}
 
-      {/* Contenedor del carrusel */}
       <div
         ref={scrollContainerRef}
-        onScroll={checkScroll}
-        className="flex gap-4 overflow-x-auto scrollbar-hide px-4 md:px-8 pb-4"
-        style={{
-          scrollbarWidth: 'none',
-          msOverflowStyle: 'none',
-        }}
+        className="flex items-stretch gap-4 overflow-x-auto snap-x snap-mandatory scroll-smooth scrollbar-hide px-4 md:px-8 py-4"
       >
         {movies.map((movie) => (
-          <div key={movie.id} className="flex-none w-[200px] md:w-[250px]">
+          <div key={movie.id} className="flex-shrink-0 snap-start w-1/2 sm:w-1/3 md:w-1/4 lg:w-1/5 xl:w-1/6">
             <MovieCard movie={movie} onClick={() => onMovieSelect(movie)} />
           </div>
         ))}
       </div>
 
-      {/* Botón derecho */}
       {canScrollRight && (
         <button
           onClick={() => scroll('right')}
-          className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-black/80 hover:bg-black text-white p-2 rounded-l-lg opacity-0 group-hover:opacity-100 transition-opacity"
+          className="absolute right-2 top-1/2 -translate-y-1/2 z-20 bg-background/70 backdrop-blur-sm text-foreground rounded-full w-12 h-12 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:bg-primary hover:text-primary-foreground focus:outline-none focus:ring-2 focus:ring-primary"
           aria-label="Scroll right"
         >
-          <ChevronRight className="w-8 h-8" />
+          <ChevronRight className="w-6 h-6" />
         </button>
       )}
 
       <style>{`
         .scrollbar-hide::-webkit-scrollbar {
           display: none;
+        }
+        .scrollbar-hide {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
         }
       `}</style>
     </div>

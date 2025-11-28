@@ -15,7 +15,8 @@ export function Login({ onLogin, onNavigate }: LoginProps) {
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        // Llamar a onLogin aquí si usas el formulario
+        // Enviar credenciales al manejador provisto por App
+        onLogin(email.trim(), password);
     };
 
     return (
@@ -29,7 +30,8 @@ export function Login({ onLogin, onNavigate }: LoginProps) {
                         </div>
                         <h1 className="text-2xl mb-2 font-semibold tracking-wider">DUO-CINEFILO</h1>
                     </div>
-                    <h1 className="text-foreground text-3xl font-bold mb-2">Iniciar Sesión</h1>
+                    <h1 className="text-foreground text-3xl font-bold mb-2 break-words">Iniciar Sesión</h1>
+                    <p className="text-muted-foreground text-sm">Accede a tu cuenta para continuar</p>
                 </div>
 
                 {/* Contenedor del formulario con fondo de tarjeta (Card) */}
