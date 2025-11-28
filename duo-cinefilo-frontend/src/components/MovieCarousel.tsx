@@ -14,6 +14,10 @@ export function MovieCarousel({ movies, title, onMovieSelect }: MovieCarouselPro
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
 
+    /**
+   * Revisa si el contenedor permite desplazarse hacia izquierda o derecha.
+   * Se ejecuta con cada scroll.
+   */
   const checkScroll = () => {
     if (scrollContainerRef.current) {
       const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;

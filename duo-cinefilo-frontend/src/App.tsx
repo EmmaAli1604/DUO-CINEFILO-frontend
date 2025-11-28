@@ -1,4 +1,11 @@
-import { useState, useEffect } from 'react';
+/**
+ * App.tsx
+ *
+ * Punto central de la aplicación. Gestiona las pantallas principales
+ * (inicio, login, registro) y mantiene el estado global del usuario.
+ */
+import { useState } from 'react';
+import type { ComponentType } from 'react';
 import { Home } from './components/Home';
 import { SearchResults } from './components/SearchResults';
 import { Login } from './components/Login';

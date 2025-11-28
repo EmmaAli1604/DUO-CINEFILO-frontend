@@ -1,5 +1,27 @@
-import { useEffect, useState } from 'react';
-import { ArrowLeft, Star, Play, MapPin, Info } from 'lucide-react';
+/**
+ * Componente MovieDetail
+ *
+ * Muestra la página completa de detalle de una película:
+ *  - Información de la película (título, año, duración, género…)
+ *  - Calificación promedio
+ *  - Descripción
+ *  - Botones para compra y tráiler
+ *  - Sección para que el usuario califique y comente
+ *  - Listado de cines disponibles
+ *
+ * Props:
+ *  - movie (Movie): Película seleccionada.
+ *  - user (User|null): Usuario autenticado (si existe).
+ *  - onBack(): Navega hacia la pantalla anterior.
+ *  - onBuyTickets(cinema): Acción al comprar boletos.
+ *  - onBuyMovie(): Acción al comprar película digital.
+ *
+ * Notas:
+ *  - Maneja comentarios locales sin backend real.
+ *  - Usa cines de ejemplo (MOCK_CINEMAS).
+ */
+import { useState } from 'react';
+import { ArrowLeft, Star, Play, MapPin, ShoppingCart } from 'lucide-react';
 import type { Movie, Cinema } from '../App';
 import type { User } from '../App';
 import { Button } from './ui/button';

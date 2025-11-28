@@ -1,3 +1,16 @@
+/**
+ * Componente MovieCard
+ *
+ * Representa una tarjeta visual individual de película dentro del catálogo.
+ * Muestra imagen, título, calificación y permite seleccionar la película.
+ *
+ * Props:
+ *  - movie (Movie): Objeto con la información de la película.
+ *  - onClick: Función que se ejecuta cuando el usuario selecciona la tarjeta.
+ *
+ * Uso:
+ *  Este componente se utiliza dentro de listas y carruseles de películas.
+ */
 import { Star } from 'lucide-react';
 import type { Movie } from '../App';
 import { ImageWithFallback } from './figma/ImageWithFallback';

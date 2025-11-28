@@ -1,4 +1,17 @@
-import { useState, useEffect, useRef } from 'react';
+/**
+ * Home.tsx
+ *
+ * Página principal de la aplicación. Muestra:
+ * - Barra de navegación
+ * - Película destacada
+ * - Carruseles de películas
+ * - Búsqueda y filtros por género
+ * - Conexión al backend para cargar películas reales
+ *
+ * Esta vista es la más importante del frontend, ya que controla la
+ * presentación del catálogo y la interacción inicial del usuario.
+ */
+import { useState, useEffect } from 'react';
 import { MovieCarousel } from './MovieCarousel';
 import type { Movie, User } from '../App';
 import { Search, User as UserIcon, LogOut, Play, Info, TrendingUp, Sparkles, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -545,12 +558,56 @@ export function Home({ user, onMovieSelect, onNavigate, onLogout, onStartSearch,
                     </div>
                 </div>
 
-                {/* Indicador de scroll */}
-                <div className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce">
-                    <div className="w-6 h-10 border-2 border-border/30 rounded-full flex items-start justify-center p-2">
-                        <div className="w-1.5 h-3 bg-foreground/50 rounded-full" />
-                    </div>
-                </div>
+            <MovieCarousel 
+              movies={movies} 
+              title="Populares en CineMax" 
+              onMovieSelect={onMovieSelect}
+            />
+            
+            <MovieCarousel 
+              movies={actionMovies} 
+              title="Acción y Aventura" 
+              onMovieSelect={onMovieSelect}
+            />
+
+            <MovieCarousel 
+              movies={dramaMovies} 
+              title="Dramas Aclamados" 
+              onMovieSelect={onMovieSelect}
+            />
+            
+            <MovieCarousel 
+              movies={sciFiMovies} 
+              title="Ciencia Ficción" 
+              onMovieSelect={onMovieSelect}
+            />
+          </>
+        ) : (
+          <MovieCarousel 
+            movies={filteredMovies} 
+            title={`${selectedGenre}`} 
+            onMovieSelect={onMovieSelect}
+          />
+        )}
+      </div>
+
+      {/* FOOTER MODERNO */}
+      <footer className="bg-gradient-to-t from-black to-transparent border-t border-white/10 py-12">
+        <div className="container mx-auto px-4 lg:px-8">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+            <div>
+              <img src={logo} alt="CineMax" className="h-10 mb-4" />
+              <p className="text-white/60 text-sm">
+                La mejor experiencia cinematográfica en tu hogar
+              </p>
+            </div>
+            <div>
+              <h3 className="text-white font-semibold mb-4">Navegación</h3>
+              <ul className="space-y-2 text-white/60 text-sm">
+                <li className="hover:text-white cursor-pointer transition-colors">Inicio</li>
+                <li className="hover:text-white cursor-pointer transition-colors">Películas</li>
+                <li className="hover:text-white cursor-pointer transition-colors">Mi Lista</li>
+              </ul>
             </div>
 
             {/* FILTROS DE GÉNERO / ETIQUETAS */}
