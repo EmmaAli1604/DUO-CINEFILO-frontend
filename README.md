@@ -120,13 +120,13 @@ La aplicación se abrirá normalmente en:
 El frontend consulta al backend mediante `fetch()`:
 
 ```ts
-fetch(`${import.meta.env.VITE_API_URL}/api/peliculas/`)
+fetch(`${import.meta.env.VITE_API_URL}/peliculas/`)
 ```
 
 Este endpoint debe responder desde el servidor Django:
 
 ```
-http://127.0.0.1:8000/api/peliculas/
+http://127.0.0.1:8000/peliculas/
 ```
 
 ---
