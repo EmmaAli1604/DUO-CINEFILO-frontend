@@ -156,7 +156,6 @@ export function Home({ user, onMovieSelect, onNavigate, onLogout, onStartSearch,
     // Endpoint para obtener etiquetas desde el backend (se usa en el montaje)
     const TAGS_URL = `${apiBaseUrl}/peliculas/tags`;
     const TMDB_IMAGE_BASE = 'https://image.tmdb.org/t/p/w500';
-    const YT_WATCH_BASE = 'https://www.youtube.com/watch?v='; // por si luego lo usamos
 
     type ApiMovie = {
         id: number | string;
@@ -252,7 +251,6 @@ export function Home({ user, onMovieSelect, onNavigate, onLogout, onStartSearch,
                     })
                     .filter((t: Tag | null): t is Tag => !!t);
                 console.log(parsed);
-                // No eliminar duplicados: el backend garantiza que no vienen repetidos
                 if (!cancelled) {
                     const all: Tag[] = [{ id: null, nombre: 'Todos' }, ...parsed];
                     setCategories(all);
@@ -386,7 +384,6 @@ export function Home({ user, onMovieSelect, onNavigate, onLogout, onStartSearch,
             alert('no se encontro el link al trailer');
             return;
         }
-        // Si ya es una URL completa, úsala; si parece ser un ID de YouTube, construir la URL
         const isUrl = /^https?:\/\//i.test(raw);
         const url = isUrl ? raw : `https://www.youtube.com/watch?v=${encodeURIComponent(raw)}`;
         const win = window.open(url, '_blank', 'noopener,noreferrer');
