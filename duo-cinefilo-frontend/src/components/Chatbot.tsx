@@ -13,7 +13,7 @@ interface Message {
     timestamp: Date;
 }
 
-// "display" se usa cuando el bot solo muestra datos pasivamente
+// accciones posubles que haga el bot, null significa que solo muestra el mensaje
 type NextAction = "search" | "display" | null;
 
 interface ChatbotProps {
@@ -31,7 +31,7 @@ const Chatbot = ({ onSearch, onStartSearch }: ChatbotProps) => {
     const [nextAction, setNextAction] = useState<NextAction>(null);
     const scrollAreaRef = useRef<HTMLDivElement>(null);
 
-    // Asegúrate de tener VITE_API_BASE_URL en tu .env.local
+    // Requiere la variable VITE_API_BASE_URL en el .env
     const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
 
     const getCookie = (name: string) => {
